@@ -5,6 +5,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import config
+import tornado.database
+
+NewsDatabase = tornado.database.Connection(
+    "127.0.0.1:3306",
+    "ssdutnews",
+    "ssdutnews",
+    "ssdutnewsplayswell",
+)
 
 engine = create_engine(config.db_config,
                        pool_recycle=1)
