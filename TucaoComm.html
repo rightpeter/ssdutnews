@@ -1,0 +1,26 @@
+<p>{{ title }}</p>
+<p>{{ body }}</p>
+<p>{{ publisher }}</p>
+<p>{{ date }}</p>
+<table id="tucao_list">
+    <thead>
+        <tr>
+            <th>cid</th>
+            <th>吐槽</th>
+        </tr>
+    <thead>
+<tbody>
+    {% for comm in commList %}
+    <tr>
+        <th>{{ comm.cid }}</th>
+        <th>{{ comm.content }}</th>
+    </tr>
+    {% end %}
+</tbody>
+</table>
+
+<form action="/tucao/comm" method="post">
+    吐槽<input type="text" name="content">
+    <input type="hidden" name="id" value="{{ nid }}">
+    <input type="submit" value"Submit">
+</form>
