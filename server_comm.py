@@ -14,6 +14,7 @@ import httplib
 import json
 import pickle
 import datetime
+import threading
 from db import *
 
 reload(sys)
@@ -28,6 +29,83 @@ home_page = "http://210.30.97.149:2358"
 ali_page = "115.28.2.165"
 tmp_page = "210.30.97.149"
 
+class Memoize:
+    """
+    'Memoizes' a function, caching its return values for each input.
+    If `expires` is specified, values are recalculated after `expires` seconds.
+    If `background` is specified, values are recalculated in a separate thread.
+    
+        >>> calls = 0
+        >>> def howmanytimeshaveibeencalled():
+        ...     global calls
+        ...     calls += 1
+        ...     return calls
+        >>> fastcalls = memoize(howmanytimeshaveibeencalled)
+        >>> howmanytimeshaveibeencalled()
+        1
+        >>> howmanytimeshaveibeencalled()
+        2
+        >>> fastcalls()
+        3
+        >>> fastcalls()
+        3
+        >>> import time
+        >>> fastcalls = memoize(howmanytimeshaveibeencalled, .1, background=False)
+        >>> fastcalls()
+        4
+        >>> fastcalls()
+        4
+        >>> time.sleep(.2)
+        >>> fastcalls()
+        5
+        >>> def slowfunc():
+        ...     time.sleep(.1)
+        ...     return howmanytimeshaveibeencalled()
+        >>> fastcalls = memoize(slowfunc, .2, background=True)
+        >>> fastcalls()
+        6
+        >>> timelimit(.05)(fastcalls)()
+        6
+        >>> time.sleep(.2)
+        >>> timelimit(.05)(fastcalls)()
+        6
+        >>> timelimit(.05)(fastcalls)()
+        6
+        >>> time.sleep(.2)
+        >>> timelimit(.05)(fastcalls)()
+        7
+        >>> fastcalls = memoize(slowfunc, None, background=True)
+        >>> threading.Thread(target=fastcalls).start()
+        >>> time.sleep(.01)
+        >>> fastcalls()
+        9
+    """
+    def __init__(self, func, expires=None, background=True): 
+        self.func = func
+        self.cache = {}
+        self.expires = expires
+        self.background = background
+        self.running = {}
+    
+    def __call__(self, *args, **keywords):
+        key = (args, tuple(keywords.items()))
+        if not self.running.get(key):
+            self.running[key] = threading.Lock()
+        def update(block=False):
+            if self.running[key].acquire(block):
+                try:
+                    self.cache[key] = (self.func(*args, **keywords), time.time())
+                finally:
+                    self.running[key].release()
+        
+        if key not in self.cache: 
+            update(block=True)
+        elif self.expires and (time.time() - self.cache[key][1]) > self.expires:
+            if self.background:
+                threading.Thread(target=update).start()
+            else:
+                update()
+        return self.cache[key][0]
 
 class CJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -103,27 +181,31 @@ class TucaoHandler(tornado.web.RequestHandler):
         print ("Insert comm")
         self.write("success")
 
+def get_page_data(nid):
+    url = "/id/%d" % nid
+    try:
+        httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=30)
+        httpClient.request('GET', url) 
+
+        response = httpClient.getresponse()
+        # print response.status
+        response.reason
+        raw_news = response.read()
+	return raw_news
+    except Exception, e:
+        print e
+    finally:
+        if httpClient:
+            httpClient.close()
+
+get_page_data_cache = Memoize(get_page_data)
+
 class TucaoCommHandler(tornado.web.RequestHandler):
     def get(self, nnid):
         NewsDatabase.reconnect()
         nid = int(nnid)
-        url = "/id/%d" % nid
-        print ali_page
-        print url
-        try:
-            httpClient = httplib.HTTPConnection(tmp_page, 8000, timeout=30)
-            httpClient.request('GET', url) 
 
-            response = httpClient.getresponse()
-            # print response.status
-            response.reason
-            raw_news = response.read()
-        except Exception, e:
-            print e
-        finally:
-            if httpClient:
-                httpClient.close()
-
+	raw_news = get_page_data_cache(nid)
         jsonDic = json.loads(raw_news)
         # print jsonDic['clean_body'] 
         

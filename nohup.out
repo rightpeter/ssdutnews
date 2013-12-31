@@ -1,0 +1,73 @@
+ERROR:root:Uncaught exception POST /tucao/comm (210.30.107.7)
+HTTPRequest(protocol='http', host='210.30.97.149:2358', method='POST', uri='/tucao/comm', version='HTTP/1.1', remote_ip='210.30.107.7', body='id=3765&content=%E5%93%87%E5%93%88%E5%93%88', headers={'Origin': 'http://210.30.97.149:2358', 'Content-Length': '43', 'Accept-Language': 'zh-CN,zh;q=0.8', 'Accept-Encoding': 'gzip,deflate,sdch', 'Host': '210.30.97.149:2358', 'Accept': '*/*', 'User-Agent': 'Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36', 'Connection': 'keep-alive', 'X-Requested-With': 'XMLHttpRequest', 'Referer': 'http://210.30.97.149:2358/tucao/comm/3765', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'})
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1021, in _execute
+    getattr(self, self.request.method.lower())(*args, **kwargs)
+  File "server_comm.py", line 241, in post
+    self.redirect("/tucao/comm/%d" % nid)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 469, in redirect
+    self.finish()
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 701, in finish
+    self.request.finish()
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 433, in finish
+    self.connection.finish()
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 187, in finish
+    self._finish_request()
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 223, in _finish_request
+    self.stream.read_until(b("\r\n\r\n"), self._header_callback)
+  File "/usr/lib/python2.7/dist-packages/tornado/iostream.py", line 153, in read_until
+    self._try_inline_read()
+  File "/usr/lib/python2.7/dist-packages/tornado/iostream.py", line 381, in _try_inline_read
+    self._check_closed()
+  File "/usr/lib/python2.7/dist-packages/tornado/iostream.py", line 564, in _check_closed
+    raise IOError("Stream is closed")
+IOError: Stream is closed
+ERROR:root:Cannot send error response after headers written
+ERROR:root:Uncaught exception, closing connection.
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/dist-packages/tornado/iostream.py", line 304, in wrapper
+    callback(*args)
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 292, in _on_request_body
+    self.request_callback(self._request)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1412, in __call__
+    handler._execute(transforms, *args, **kwargs)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1025, in _execute
+    self._handle_request_exception(e)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1065, in _handle_request_exception
+    self.send_error(500, exc_info=sys.exc_info())
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 720, in send_error
+    self.finish()
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 700, in finish
+    self.flush(include_footers=True)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 660, in flush
+    self.request.write(headers + chunk, callback=callback)
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 429, in write
+    self.connection.write(chunk, callback=callback)
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 177, in write
+    assert self._request, "Request closed"
+AssertionError: Request closed
+ERROR:root:Exception in callback <tornado.stack_context._StackContextWrapper object at 0x9ec9e64>
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/dist-packages/tornado/ioloop.py", line 421, in _run_callback
+    callback()
+  File "/usr/lib/python2.7/dist-packages/tornado/iostream.py", line 304, in wrapper
+    callback(*args)
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 292, in _on_request_body
+    self.request_callback(self._request)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1412, in __call__
+    handler._execute(transforms, *args, **kwargs)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1025, in _execute
+    self._handle_request_exception(e)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 1065, in _handle_request_exception
+    self.send_error(500, exc_info=sys.exc_info())
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 720, in send_error
+    self.finish()
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 700, in finish
+    self.flush(include_footers=True)
+  File "/usr/lib/python2.7/dist-packages/tornado/web.py", line 660, in flush
+    self.request.write(headers + chunk, callback=callback)
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 429, in write
+    self.connection.write(chunk, callback=callback)
+  File "/usr/lib/python2.7/dist-packages/tornado/httpserver.py", line 177, in write
+    assert self._request, "Request closed"
+AssertionError: Request closed

@@ -3,10 +3,10 @@
 <head>
 	<title></title>
 	<meta charset="utf-8">
-    <script src={{ static_url("script/jquery-latest.js") }}></script>
-    <script src={{ static_url("script/basic.js") }}></script>
-    <link rel="stylesheet" href={{ static_url("blog.css") }}>
-    <link rel="stylesheet" href={{ static_url("basic.css") }}>
+    <script src="{{ static_url("script/jquery-latest.js") }}"></script>
+    <script src="{{ static_url("script/basic.js") }}"></script>
+    <link rel="stylesheet" href="{{ static_url("blog.css") }}">
+    <link rel="stylesheet" href="{{ static_url("basic.css") }}">
 </head>
 <body>
 	<div id="wrapper">
@@ -43,7 +43,7 @@
 		<div class="input-form">
 			<textarea class="normal-input-text" id="content" name="content"></textarea>
 			<p id="rest-num"></p>
-            <input type="hidden" id="id" name="id"  value="{{ nid }}"></input>
+            <input type="hidden" id="id" name="id"  value="{{ nid }}">
 			<div class="normal-input-button" id="tucao-submit"><a>吐槽</a></div>
 		</div>
 
