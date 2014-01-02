@@ -8,7 +8,9 @@ import time
 import json
 import tornado.web
 import tornado.ioloop
-import tornado.database
+# tornado 3.x nolonger have this. use torndb
+#import tornado.database
+import torndb
 import math
 import httplib
 import json
@@ -23,7 +25,7 @@ sys.setdefaultencoding('gb2312')
 from tornado.options import define, options
 
 # define("port", default=2358, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
+define("port", default=2355, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
 home_page = "http://210.30.97.149:2358"
@@ -209,14 +211,14 @@ class TucaoCommHandler(tornado.web.RequestHandler):
 
 	raw_news = get_page_data_cache(nid)
         jsonDic = json.loads(raw_news)
-        # print jsonDic['clean_body'] 
         
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
                 BY level DESC""", nid)
         # print comm
         self.render('TucaoComm.html', title=jsonDic['title'],\
                 body=jsonDic['body'], publisher=jsonDic['publisher'],\
-                date=jsonDic['date'], commList=comm, nid=nid)
+                date=jsonDic['date'], clean_body=jsonDic['clean_body'],\
+                commList=comm, nid=nid)
 
     def post(self):
         self.application.max_comm -=1
