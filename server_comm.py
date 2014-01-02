@@ -22,6 +22,7 @@ sys.setdefaultencoding('gb2312')
 
 from tornado.options import define, options
 
+# define("port", default=2358, help="run on the given port", type=int)
 define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
@@ -118,6 +119,7 @@ class CJsonEncoder(json.JSONEncoder):
 
 class Application(tornado.web.Application):
     def __init__(self):
+        self.max_comm = 5000
         handlers = [
             (r'/', MainHandler),
             (r'/tucao', TucaoHandler),
@@ -213,14 +215,18 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                 BY level DESC""", nid)
         # print comm
         self.render('TucaoComm.html', title=jsonDic['title'],\
-                body=jsonDic['clean_body'], publisher=jsonDic['publisher'],\
+                body=jsonDic['body'], publisher=jsonDic['publisher'],\
                 date=jsonDic['date'], commList=comm, nid=nid)
 
     def post(self):
+        self.application.max_comm -=1
+        if self.application.max_comm <= 0:
+            return
         print ("In post")
         NewsDatabase.reconnect()
 
         raw_body = str(self.request.body)
+        print self.request.remote_ip
         print raw_body
 
         nid = int(self.get_argument('id'))

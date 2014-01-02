@@ -5,10 +5,12 @@ $(document).ready(function() {
 	});
 
 	$('.normal-input-button').click(function() {
-		if($('#content').val().length > 240) {
+		//if($('#content').val().length > 240) {
 			
-		}
-		$.post("/tucao/comm", {id: $('#id').attr("value"),content: $('#content').val()});
-        location.reload();
+		//}
+		$.post("/tucao/comm?"+(new Date()).valueOf(), {id: $('#id').attr("value"),content: $('#content').val()}, function (res) {
+			console.log(res);
+			window.location.reload();
+		});
 	});
 });
