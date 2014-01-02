@@ -30,6 +30,8 @@ home_page = "http://210.30.97.149:2358"
 ali_page = "115.28.2.165"
 tmp_page = "210.30.97.149"
 
+restrict = {}
+
 class Memoize:
     """
     'Memoizes' a function, caching its return values for each input.
@@ -140,9 +142,9 @@ class MainHandler(tornado.web.RequestHandler):
     def post(self):
         # self.set_header("Content-Type", "application/json")
         raw_body = str(self.request.body)
-        print raw_body
+        # print raw_body
         jsonDic = json.loads(raw_body)
-        print jsonDic 
+        # print jsonDic 
         print jsonDic['id']
         self.write("success")
 
@@ -151,25 +153,42 @@ class TucaoHandler(tornado.web.RequestHandler):
         NewsDatabase.reconnect()
         nid = int(nnid)
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
-                BY level DESC""", nid)
-        print comm
+                BY level DESC, tolevel""", nid)
+        # print comm
         reply = json.dumps(comm, cls=CJsonEncoder)
-        print reply
+        # print reply
         self.write(reply)
 
     def post(self):
         print ("In post")
         NewsDatabase.reconnect()
+
+        remote_ip = self.request.remote_ip
+        if ( restrict.has_key( remote_ip ) ):
+            if ( time.time() - restrict[remote_ip][0] < 5 ):
+                self.write("less than 5 second")
+                print restrict[remote_ip][0]
+                print time.time()
+                print "less than 5 second"
+                return
+            if ( restrict[remote_ip][1] > 1000 ):
+                self.write("too much")
+                print restrict[remote_ip][1]
+                print "too much"
+                return 
+        else:
+            restrict[remote_ip] = [time.time(), 0]
+        
         raw_body = str(self.request.body)
-        print raw_body
+        # print raw_body
 
         jsonDic = json.loads(raw_body)
-        print jsonDic
+        # print jsonDic
         
         nid = int(jsonDic['id'])
         LEVEL = NewsDatabase.query("""SELECT COUNT(*) AS level FROM commTable WHERE id=%r""", nid)
         level = int(LEVEL[0]['level'])
-        print level
+        # print level
 
         level += 1
         tolevel = 0
@@ -180,7 +199,10 @@ class TucaoHandler(tornado.web.RequestHandler):
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
                     content)
 
+        restrict[remote_ip][1] += 1
         print ("Insert comm")
+        print restrict[remote_ip][1]
+        
         self.write("success")
 
 def get_page_data(nid):
@@ -207,12 +229,12 @@ class TucaoCommHandler(tornado.web.RequestHandler):
         NewsDatabase.reconnect()
         nid = int(nnid)
 
-	raw_news = get_page_data_cache(nid)
+        raw_news = get_page_data_cache(nid)
         jsonDic = json.loads(raw_news)
         # print jsonDic['clean_body'] 
         
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
-                BY level DESC""", nid)
+                BY level DESC, tolevel""", nid)
         # print comm
         self.render('TucaoComm.html', title=jsonDic['title'],\
                 body=jsonDic['body'], publisher=jsonDic['publisher'],\
@@ -225,25 +247,53 @@ class TucaoCommHandler(tornado.web.RequestHandler):
         print ("In post")
         NewsDatabase.reconnect()
 
+        remote_ip = self.request.remote_ip
+        if ( restrict.has_key( remote_ip ) ):
+            if ( time.time() - restrict[remote_ip][0] < 5 ):
+                self.write("less than 5 second")
+                print restrict[remote_ip][0]
+                print time.time()
+                print "less than 5 second"
+                return
+            if ( restrict[remote_ip][1] > 1000 ):
+                self.write("too much")
+                print restrict[remote_ip][1]
+                print "too much"
+                return 
+        else:
+            restrict[remote_ip] = [time.time(), 0]
         raw_body = str(self.request.body)
         print self.request.remote_ip
         print raw_body
 
         nid = int(self.get_argument('id'))
-        LEVEL = NewsDatabase.query("""SELECT COUNT(*) AS level FROM commTable WHERE id=%r""", nid)
-        level = int(LEVEL[0]['level'])
-        # print level
-
-        level += 1
-        tolevel = 0
         content = self.get_argument('content')
+        r = r"^@(\d+):([\s\S]+)$"
+        LEVEL = re.findall(r, content)
+        if LEVEL:
+            level = int(LEVEL[0][0])
+            TOLEVEL = NewsDatabase.query("""SELECT COUNT(*) AS tolevel FROM commTable WHERE id=%r AND level=%r""", nid, level) 
+            if ( int(TOLEVEL[0]['tolevel']) == 0 ):
+                print "no such level"
+                self.write("no such level")
+                return 
+            else:
+                tolevel = int(TOLEVEL[0]['tolevel']) + 1
+                content = LEVEL[0][1]
+        else:
+            tolevel = 1
+            LEVEL = NewsDatabase.query("""SELECT COUNT(DISTINCT(level)) AS level FROM commTable WHERE id=%r""", nid)
+            level = int(LEVEL[0]['level']) + 1
+
         # print content
             
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
                     content)
 
+        restrict[remote_ip][1] += 1
         print ("Insert comm")
+        print restrict[remote_ip][1]
         self.redirect("/tucao/comm/%d" % nid)
 
 def TestTucao():
