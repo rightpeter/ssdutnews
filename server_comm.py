@@ -266,7 +266,7 @@ class TucaoHandler(tornado.web.RequestHandler):
 def get_page_data(nid):
     url = "/id/%d" % nid
     try:
-        httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=30)
+        httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=2000)
         httpClient.request('GET', url) 
 
         response = httpClient.getresponse()
@@ -290,6 +290,7 @@ class TucaoCommHandler(tornado.web.RequestHandler):
         nid = int(nnid)
 
         raw_news = get_page_data_cache(nid)
+        print raw_news
         jsonDic = json.loads(raw_news)
         
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
