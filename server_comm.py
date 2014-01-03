@@ -226,15 +226,33 @@ class TucaoHandler(tornado.web.RequestHandler):
         # print jsonDic
         
         nid = int(jsonDic['id'])
-        LEVEL = NewsDatabase.query("""SELECT COUNT(*) AS level FROM commTable WHERE id=%r""", nid)
-        level = int(LEVEL[0]['level'])
-        # print level
-
-        level += 1
-        tolevel = 0
         content = jsonDic['content']
-        print content
+       
+        r = r"^@(\d+):([\s\S]+)$"
+        LEVEL = re.findall(r, content)
+        if LEVEL:
+            level = int(LEVEL[0][0])
+            TOLEVEL = NewsDatabase.query("""SELECT COUNT(*) AS tolevel FROM commTable WHERE id=%r AND level=%r""", nid, level) 
+            if ( int(TOLEVEL[0]['tolevel']) == 0 ):
+                print "no such level"
+                self.write("no such level")
+                return 
+            else:
+                tolevel = int(TOLEVEL[0]['tolevel']) + 1
+                content = LEVEL[0][1]
+        else:
+            tolevel = 1
+            LEVEL = NewsDatabase.query("""SELECT COUNT(DISTINCT(level)) AS level FROM commTable WHERE id=%r""", nid)
+            level = int(LEVEL[0]['level']) + 1
+
+        # print content
             
+        if (content == 'water'):
+                NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
+                blacklist.append(remote_ip)
+                print blacklist
+                isInBlackList(self)
+
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
                     content)
@@ -309,11 +327,13 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                 return 
         else:
             restrict[remote_ip] = [time.time(), 0]
+
         raw_body = str(self.request.body)
         print self.request.remote_ip
         print raw_body
 
         nid = int(self.get_argument('id'))
+
         content = self.get_argument('content')
         r = r"^@(\d+):([\s\S]+)$"
         LEVEL = re.findall(r, content)
