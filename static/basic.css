@@ -1,4 +1,3 @@
-article {
-	width: 1000px;
-	margin: 0 auto;
+.one-level {
+  border-bottom: solid #eeeeee 1px;
 }

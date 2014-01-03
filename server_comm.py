@@ -8,9 +8,9 @@ import time
 import json
 import tornado.web
 import tornado.ioloop
-import tornado.database
-import math
-import httplib
+# tornado 3.x nolonger have this. use torndb
+#import tornado.database
+import tornd
 import json
 import pickle
 import datetime
@@ -270,14 +270,14 @@ class TucaoCommHandler(tornado.web.RequestHandler):
 
         raw_news = get_page_data_cache(nid)
         jsonDic = json.loads(raw_news)
-        # print jsonDic['clean_body'] 
         
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
                 BY level DESC, tolevel""", nid)
         # print comm
         self.render('TucaoComm.html', title=jsonDic['title'],\
                 body=jsonDic['body'], publisher=jsonDic['publisher'],\
-                date=jsonDic['date'], commList=comm, nid=nid)
+                date=jsonDic['date'], clean_body=jsonDic['clean_body'],\
+                commList=comm, nid=nid)
 
     def post(self):
         if ( isInBlackList(self) ):

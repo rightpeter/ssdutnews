@@ -4,7 +4,7 @@ $(document).ready(function() {
 		$('#rest-num').text($('#content').val().length+"/240");
 	});
 
-	$('.normal-input-button').click(function() {
+	$('#tucao-submit').click(function() {
 		//if($('#content').val().length > 240) {
 			
 		//}
@@ -13,4 +13,11 @@ $(document).ready(function() {
 			window.location.reload();
 		});
 	});
+
+    $(".body-full").hide();
+    // 点击 more 显示更多内容
+    $(".body-abstract").click(function() {
+        $(".body-full").show("fast");
+        $(".body-abstract").hide();
+    });
 });
