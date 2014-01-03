@@ -24,8 +24,8 @@ sys.setdefaultencoding('gb2312')
 
 from tornado.options import define, options
 
-# define("port", default=2357, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
+define("port", default=2357, help="run on the given port", type=int)
+# define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
 home_page = "http://210.30.97.149:2358"
@@ -47,6 +47,7 @@ def isInBlackList(self):
     print "uri: %s" % self.request.uri
     print "remote_ip: %s" % self.request.remote_ip
     print "body: %s" % self.request.body
+    print "time: %s" % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
     print "-----------------------------one request-----------------------------"
     # print blacklist
     # print blacklist[0]
