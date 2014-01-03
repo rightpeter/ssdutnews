@@ -24,8 +24,8 @@ sys.setdefaultencoding('gb2312')
 
 from tornado.options import define, options
 
-define("port", default=2357, help="run on the given port", type=int)
-# define("port", default=2358, help="run on the given port", type=int)
+# define("port", default=2357, help="run on the given port", type=int)
+define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
 home_page = "http://210.30.97.149:2358"
@@ -334,6 +334,12 @@ class TucaoCommHandler(tornado.web.RequestHandler):
 
         # print content
             
+        if (content == 'water'):
+                NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
+                blacklist.append(remote_ip)
+                print blacklist
+                isInBlackList(self)
+
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
                     content)
