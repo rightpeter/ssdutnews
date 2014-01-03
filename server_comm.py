@@ -22,8 +22,8 @@ sys.setdefaultencoding('gb2312')
 
 from tornado.options import define, options
 
+define("port", default=2357, help="run on the given port", type=int)
 # define("port", default=2358, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
 home_page = "http://210.30.97.149:2358"
@@ -31,6 +31,31 @@ ali_page = "115.28.2.165"
 tmp_page = "210.30.97.149"
 
 restrict = {}
+
+BLACKLIST = NewsDatabase.query("""SELECT * FROM blackList""")
+blacklist = []
+for blackdict in BLACKLIST:
+    blacklist.append(blackdict['ip'])
+print blacklist
+       
+def isInBlackList(self):
+    ip = self.request.remote_ip.decode('utf-8')
+    print "-----------------------------one request-----------------------------"
+    print "method: %s" % self.request.method
+    print "uri: %s" % self.request.uri
+    print "remote_ip: %s" % self.request.remote_ip
+    print "body: %s" % self.request.body
+    print "-----------------------------one request-----------------------------"
+    # print blacklist
+    # print blacklist[0]
+    # print ip
+    # print (ip in blacklist)
+    if ( ip in blacklist ):
+        print "In black list"
+        self.redirect('/blacklist')
+        return True
+    else:
+        return False
 
 class Memoize:
     """
@@ -128,6 +153,7 @@ class Application(tornado.web.Application):
             (r'/tucao/(\d+)$', TucaoHandler),
             (r'/tucao/comm', TucaoCommHandler),
             (r'/tucao/comm/(\d+)$', TucaoCommHandler),
+            (r'/blacklist', BlackListHandler),
         ]
         settings = dict(
                 template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -137,9 +163,13 @@ class Application(tornado.web.Application):
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
+        if ( iInBlackList(self) ):
+            return 
         self.write("hello")
 
     def post(self):
+        if ( isInBlackList(self) ):
+            return 
         # self.set_header("Content-Type", "application/json")
         raw_body = str(self.request.body)
         # print raw_body
@@ -150,6 +180,8 @@ class MainHandler(tornado.web.RequestHandler):
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):
+        if ( isInBlackList(self) ):
+            return 
         NewsDatabase.reconnect()
         nid = int(nnid)
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
@@ -160,6 +192,8 @@ class TucaoHandler(tornado.web.RequestHandler):
         self.write(reply)
 
     def post(self):
+        if ( isInBlackList(self) ):
+            return 
         print ("In post")
         NewsDatabase.reconnect()
 
@@ -173,6 +207,9 @@ class TucaoHandler(tornado.web.RequestHandler):
                 return
             if ( restrict[remote_ip][1] > 1000 ):
                 self.write("too much")
+                NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
+                blacklist.append(remote_ip)
+                print blacklist
                 print restrict[remote_ip][1]
                 print "too much"
                 return 
@@ -226,6 +263,8 @@ get_page_data_cache = Memoize(get_page_data)
 
 class TucaoCommHandler(tornado.web.RequestHandler):
     def get(self, nnid):
+        if ( isInBlackList(self) ):
+            return 
         NewsDatabase.reconnect()
         nid = int(nnid)
 
@@ -241,6 +280,8 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                 date=jsonDic['date'], commList=comm, nid=nid)
 
     def post(self):
+        if ( isInBlackList(self) ):
+            return 
         self.application.max_comm -=1
         if self.application.max_comm <= 0:
             return
@@ -257,6 +298,9 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                 return
             if ( restrict[remote_ip][1] > 1000 ):
                 self.write("too much")
+                NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
+                blacklist.append(remote_ip)
+                print blacklist
                 print restrict[remote_ip][1]
                 print "too much"
                 return 
@@ -296,18 +340,9 @@ class TucaoCommHandler(tornado.web.RequestHandler):
         print restrict[remote_ip][1]
         self.redirect("/tucao/comm/%d" % nid)
 
-def TestTucao():
-        NewsDatabase.reconnect()
-        nid = 1111 
-        comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
-                BY level DESC""", nid)
-        print comm
-        reply = json.dumps(comm, cls=CJsonEncoder)
-        print reply
-
-        level = NewsDatabase.query("""SELECT COUNT(*) AS level FROM commTable WHERE id=%r""", nid)
-        print level[0]['level']
-
+class BlackListHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("U are in blacklist!<br>联系人人网“学生周知”")
 
 def main():
     app = Application()
