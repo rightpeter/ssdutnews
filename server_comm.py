@@ -24,8 +24,8 @@ sys.setdefaultencoding('gb2312')
 
 from tornado.options import define, options
 
-# define("port", default=2357, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
+define("port", default=2357, help="run on the given port", type=int)
+# define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
 home_page = "http://210.30.97.149:2358"
@@ -166,7 +166,7 @@ class Application(tornado.web.Application):
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        if ( iInBlackList(self) ):
+        if ( isInBlackList(self) ):
             return 
         self.write("hello")
 
@@ -179,7 +179,7 @@ class MainHandler(tornado.web.RequestHandler):
         jsonDic = json.loads(raw_body)
         # print jsonDic 
         print jsonDic['id']
-        self.write("success")
+        self.write(jsonDic)
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):
@@ -263,10 +263,11 @@ class TucaoHandler(tornado.web.RequestHandler):
         
         self.write("success")
 
-def get_page_data(nid):
+def get_page_data_cache(nid):
     url = "/id/%d" % nid
     try:
         httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=2000)
+        # httpClient = httplib.HTTPConnection(tmp_page, 8000, timeout=2000)
         httpClient.request('GET', url) 
 
         response = httpClient.getresponse()
@@ -280,7 +281,7 @@ def get_page_data(nid):
         if httpClient:
             httpClient.close()
 
-get_page_data_cache = Memoize(get_page_data)
+get_page_data = Memoize(get_page_data_cache)
 
 class TucaoCommHandler(tornado.web.RequestHandler):
     def get(self, nnid):

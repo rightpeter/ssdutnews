@@ -45,16 +45,25 @@
   <hr />
   <div>
     {% for comm in commList %}
-    <div  class="row one-level">
+    <div  class="row one-level" id="{{ comm.level }}">
       <div class="col-md-1 level-num">
         <p>{{ comm.level }} 楼</p>
       </div>
-      <div class="col-md-11 level-content">
+      <div class="col-md-9 level-content">
         <p>{{ comm.content }}</p>
+      </div>
+      <div class="col-md-2 level-reply">
+        <a>回复</a>
       </div>
     </div>
     {% end %}
   </div>
+  <article>
+    <div id="news-links-fixed">
+      <a class="btn btn-inverse disabled" id="prevpage">上一条</a>
+      <a class="btn btn-inverse disabled" id="nextpage">下一条</a>
+    </div>
+  </article>
   </body>
   <div class="scripts">
     <script src="{{ static_url("script/jquery-latest.js") }}"></script>

@@ -107,6 +107,7 @@ class QueryById(BaseHandler):
         try:
             new = New.query.filter(New.id == id).one()
             db.ses.commit()
+            time.sleep(0.5)
             self.write(new.to_json(body=True))
         except:
             db.ses.rollback()
