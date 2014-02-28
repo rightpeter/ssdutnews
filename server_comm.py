@@ -24,13 +24,13 @@ sys.setdefaultencoding('gb2312')
 
 from tornado.options import define, options
 
-define("port", default=2357, help="run on the given port", type=int)
-# define("port", default=2358, help="run on the given port", type=int)
+# define("port", default=2357, help="run on the given port", type=int)
+define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
 home_page = "http://210.30.97.149:2358"
+local_page = "210.30.97.149"
 ali_page = "115.28.2.165"
-tmp_page = "210.30.97.149"
 
 restrict = {}
 
@@ -55,7 +55,7 @@ def isInBlackList(self):
     # print (ip in blacklist)
     if ( ip in blacklist ):
         print "In black list"
-        self.redirect('/blacklist')
+        # self.redirect('/blacklist')
         return True
     else:
         return False
@@ -219,6 +219,7 @@ class TucaoHandler(tornado.web.RequestHandler):
         else:
             restrict[remote_ip] = [time.time(), 0]
         
+        print self.request
         raw_body = str(self.request.body)
         # print raw_body
 
@@ -267,7 +268,7 @@ def get_page_data_cache(nid):
     url = "/id/%d" % nid
     try:
         httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=2000)
-        # httpClient = httplib.HTTPConnection(tmp_page, 8000, timeout=2000)
+        # httpClient = httplib.HTTPConnection(local_page, 8000, timeout=2000)
         httpClient.request('GET', url) 
 
         response = httpClient.getresponse()
@@ -367,6 +368,7 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                     content)
 
         restrict[remote_ip][1] += 1
+        restrict[remote_ip][0] = time.time()
         print ("Insert comm")
         print restrict[remote_ip][1]
         self.redirect("/tucao/comm/%d" % nid)
