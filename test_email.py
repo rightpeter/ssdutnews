@@ -11,6 +11,7 @@ import sys
 import os
 import time
 import json
+from myTools import *
 
 ali_page = "115.28.2.165"
 
@@ -39,16 +40,4 @@ def send_mail(to_list, sub, context):
         return False
 
 if __name__=='__main__':
-    subject = "test" 
-    
-    context = "test"
-    # context = jsonDic['clean_body']
-    if (True == send_mail(['857166634@qq.com'], subject, context)):
-        print "success" 
-    else:
-        print "fail"
-
-    # if (True == send_mail(mailto_list, "subject", "context")):
-    #     print "success"
-    # else:
-    #     print "failed"
+    print myTools.get_a_news(1003592)

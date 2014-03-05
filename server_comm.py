@@ -8,6 +8,7 @@ import time
 import json
 import tornado.web
 import tornado.ioloop
+import tornado.httpclient
 # tornado 3.x nolonger have this. use torndb
 #import tornado.database
 import torndb
@@ -17,126 +18,19 @@ import json
 import pickle
 import datetime
 import threading
+from config import *
 from db import *
+from myTools import *
 
 reload(sys)
-sys.setdefaultencoding('gb2312')
+sys.setdefaultencoding('utf-8')
 
 from tornado.options import define, options
 
-# define("port", default=2357, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
-
-NewsDatabase.reconnect()
-home_page = "http://210.30.97.149:2358"
-local_page = "210.30.97.149"
-ali_page = "115.28.2.165"
+define("port", default=80, help="run on the given port", type=int)
+# define("port", default=2358, help="run on the given port", type=int)
 
 restrict = {}
-
-BLACKLIST = NewsDatabase.query("""SELECT * FROM blackList""")
-blacklist = []
-for blackdict in BLACKLIST:
-    blacklist.append(blackdict['ip'])
-print blacklist
-       
-def isInBlackList(self):
-    ip = self.request.remote_ip.decode('utf-8')
-    print "-----------------------------one request-----------------------------"
-    print "method: %s" % self.request.method
-    print "uri: %s" % self.request.uri
-    print "remote_ip: %s" % self.request.remote_ip
-    print "body: %s" % self.request.body
-    print "time: %s" % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-    print "-----------------------------one request-----------------------------"
-    # print blacklist
-    # print blacklist[0]
-    # print ip
-    # print (ip in blacklist)
-    if ( ip in blacklist ):
-        print "In black list"
-        # self.redirect('/blacklist')
-        return True
-    else:
-        return False
-
-class Memoize:
-    """
-    'Memoizes' a function, caching its return values for each input.
-    If `expires` is specified, values are recalculated after `expires` seconds.
-    If `background` is specified, values are recalculated in a separate thread.
-    
-        >>> calls = 0
-        >>> def howmanytimeshaveibeencalled():
-        ...     global calls
-        ...     calls += 1
-        ...     return calls
-        >>> fastcalls = memoize(howmanytimeshaveibeencalled)
-        >>> howmanytimeshaveibeencalled()
-        1
-        >>> howmanytimeshaveibeencalled()
-        2
-        >>> fastcalls()
-        3
-        >>> fastcalls()
-        3
-        >>> import time
-        >>> fastcalls = memoize(howmanytimeshaveibeencalled, .1, background=False)
-        >>> fastcalls()
-        4
-        >>> fastcalls()
-        4
-        >>> time.sleep(.2)
-        >>> fastcalls()
-        5
-        >>> def slowfunc():
-        ...     time.sleep(.1)
-        ...     return howmanytimeshaveibeencalled()
-        >>> fastcalls = memoize(slowfunc, .2, background=True)
-        >>> fastcalls()
-        6
-        >>> timelimit(.05)(fastcalls)()
-        6
-        >>> time.sleep(.2)
-        >>> timelimit(.05)(fastcalls)()
-        6
-        >>> timelimit(.05)(fastcalls)()
-        6
-        >>> time.sleep(.2)
-        >>> timelimit(.05)(fastcalls)()
-        7
-        >>> fastcalls = memoize(slowfunc, None, background=True)
-        >>> threading.Thread(target=fastcalls).start()
-        >>> time.sleep(.01)
-        >>> fastcalls()
-        9
-    """
-    def __init__(self, func, expires=None, background=True): 
-        self.func = func
-        self.cache = {}
-        self.expires = expires
-        self.background = background
-        self.running = {}
-    
-    def __call__(self, *args, **keywords):
-        key = (args, tuple(keywords.items()))
-        if not self.running.get(key):
-            self.running[key] = threading.Lock()
-        def update(block=False):
-            if self.running[key].acquire(block):
-                try:
-                    self.cache[key] = (self.func(*args, **keywords), time.time())
-                finally:
-                    self.running[key].release()
-        
-        if key not in self.cache: 
-            update(block=True)
-        elif self.expires and (time.time() - self.cache[key][1]) > self.expires:
-            if self.background:
-                threading.Thread(target=update).start()
-            else:
-                update()
-        return self.cache[key][0]
 
 class CJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -152,10 +46,14 @@ class Application(tornado.web.Application):
         self.max_comm = 5000
         handlers = [
             (r'/', MainHandler),
+            (r'/id/(\d+)$', NewsHandler),
+            (r'/renrencallback', RenrenCallBackHandler),
+            (r'/renrengettoken', RenrenGetTokenHandler),
+            (r'/index', TucaoIndexHandler),
             (r'/tucao', TucaoHandler),
             (r'/tucao/(\d+)$', TucaoHandler),
-            (r'/tucao/comm', TucaoCommHandler),
-            (r'/tucao/comm/(\d+)$', TucaoCommHandler),
+            (r'/news', TucaoCommHandler),
+            (r'/news/(\d+)$', TucaoCommHandler),
             (r'/blacklist', BlackListHandler),
         ]
         settings = dict(
@@ -166,12 +64,12 @@ class Application(tornado.web.Application):
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        if ( isInBlackList(self) ):
+        if ( myTools.isInBlackList(self) ):
             return 
         self.write("hello")
-
+        
     def post(self):
-        if ( isInBlackList(self) ):
+        if ( myTools.isInBlackList(self) ):
             return 
         # self.set_header("Content-Type", "application/json")
         raw_body = str(self.request.body)
@@ -180,10 +78,64 @@ class MainHandler(tornado.web.RequestHandler):
         # print jsonDic 
         print jsonDic['id']
         self.write(jsonDic)
+        
+class RenrenCallBackHandler(tornado.web.RequestHandler):
+    def get(self):
+        code = self.get_argument('code')
+        print code 
+        url = "https://graph.renren.com/oauth/token" +\
+                    "?grant_type=authorization_code" + \
+                    "&client_id=a5cd69597ccf4b369057f919928cbfce"+\
+                    "&redirect_uri=http://tucao.pedestal.cn/renrencallback"+\
+                    "&client_secret=ce6f56e203524cfc9c3bb61523009b6e"+\
+                    "&code=" + code
+        #print url
+        http_client = tornado.httpclient.HTTPClient()
+        response = http_client.fetch(url)
+        print response.body
+        jsonDic = json.loads(response.body)
+        print jsonDic['access_token']
+        http_client.close()
+
+class RenrenGetTokenHandler(tornado.web.RequestHandler):
+    def get(self):
+        token = self.get_argument('code')
+        print token
+
+class NewsHandler(tornado.web.RequestHandler):
+    def get(self, nnid):
+        if ( myTools.isInBlackList(self) ):
+            return
+        nid = int(nnid)
+        news = myTools.get_a_news(nid)
+        news['id'] = news['nid']
+        news.pop('nid')
+        news_json = json.dumps(news)
+        self.write(news_json)
+
+class TucaoIndexHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("tucao_index.html")
+        #try:
+        #    page = self.get_argument('page')
+        #except:
+        #    page = 1 
+        #print page
+
+        #button = [{}]
+        #text = 'a'
+        #num = 1
+        #button[0]['type'] = text
+        #button[0]['page'] = num 
+        #comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
+        #        BY level DESC, tolevel""", 3770)
+        #comm[0]['llh'] = text
+
+        #self.render("tucao_index.html", newsList=[], buttonList=button)
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):
-        if ( isInBlackList(self) ):
+        if ( myTools.isInBlackList(self) ):
             return 
         NewsDatabase.reconnect()
         nid = int(nnid)
@@ -195,7 +147,7 @@ class TucaoHandler(tornado.web.RequestHandler):
         self.write(reply)
 
     def post(self):
-        if ( isInBlackList(self) ):
+        if ( myTools.isInBlackList(self) ):
             return 
         print ("In post")
         NewsDatabase.reconnect()
@@ -252,7 +204,7 @@ class TucaoHandler(tornado.web.RequestHandler):
                 NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
                 blacklist.append(remote_ip)
                 print blacklist
-                isInBlackList(self)
+                myTools.isInBlackList(self)
 
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
@@ -264,47 +216,27 @@ class TucaoHandler(tornado.web.RequestHandler):
         
         self.write("success")
 
-def get_page_data_cache(nid):
-    url = "/id/%d" % nid
-    try:
-        httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=2000)
-        # httpClient = httplib.HTTPConnection(local_page, 8000, timeout=2000)
-        httpClient.request('GET', url) 
-
-        response = httpClient.getresponse()
-        # print response.status
-        response.reason
-        raw_news = response.read()
-	return raw_news
-    except Exception, e:
-        print e
-    finally:
-        if httpClient:
-            httpClient.close()
-
-get_page_data = Memoize(get_page_data_cache)
-
 class TucaoCommHandler(tornado.web.RequestHandler):
     def get(self, nnid):
-        if ( isInBlackList(self) ):
+        if ( myTools.isInBlackList(self) ):
             return 
         NewsDatabase.reconnect()
         nid = int(nnid)
 
-        raw_news = get_page_data_cache(nid)
-        print raw_news
-        jsonDic = json.loads(raw_news)
+        news = myTools.get_a_news(nid)
         
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
                 BY level DESC, tolevel""", nid)
+        latest = myTools.get_latest_news_id()
+        total = myTools.get_total_news_num()
         # print comm
-        self.render('TucaoComm.html', title=jsonDic['title'],\
-                body=jsonDic['body'], publisher=jsonDic['publisher'],\
-                date=jsonDic['date'], clean_body=jsonDic['clean_body'],\
-                commList=comm, nid=nid)
+        self.render('TucaoComm.html', title=news['title'],\
+                body=news['body'], publisher=news['publisher'],\
+                date=news['date'], clean_body=news['clean_body'],\
+                commList=comm, nid=nid, latest=latest, total=total)
 
     def post(self):
-        if ( isInBlackList(self) ):
+        if ( myTools.isInBlackList(self) ):
             return 
         self.application.max_comm -=1
         if self.application.max_comm <= 0:
@@ -361,7 +293,7 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                 NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
                 blacklist.append(remote_ip)
                 print blacklist
-                isInBlackList(self)
+                myTools.isInBlackList(self)
 
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
@@ -371,7 +303,7 @@ class TucaoCommHandler(tornado.web.RequestHandler):
         restrict[remote_ip][0] = time.time()
         print ("Insert comm")
         print restrict[remote_ip][1]
-        self.redirect("/tucao/comm/%d" % nid)
+        self.redirect("/news/%d" % nid)
 
 class BlackListHandler(tornado.web.RequestHandler):
     def get(self):
@@ -382,6 +314,19 @@ def main():
     app.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
 
+def init():
+    env_dict['latest'] = myTools.get_latest_news_id()
+    env_dict['total'] = myTools.get_total_news_num()
+    print env_dict['total']
+
+    BLACKLIST = NewsDatabase.query("""SELECT * FROM blackList""")
+    env_dict['blacklist'] = []
+    for blackdict in BLACKLIST:
+        env_dict['blacklist'].append(blackdict['ip'])
+    print env_dict['blacklist']
+
+
 if __name__ == "__main__":
+    init()
     main()
 

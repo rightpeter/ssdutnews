@@ -1,4 +1,5 @@
 #encoding=utf-8
+env_dict = {}
 db_config = 'mysql://ssdutnews:ssdutnewsplayswell@127.0.0.1/ssdutnews'
 
 update_interval = 15 # seconds
@@ -6,8 +7,11 @@ update_interval = 15 # seconds
 renren_email = 'pedestal_peter@163.com'
 renren_pw = 'pedestaldlut'
 
-shalong_title = u'本周沙龙安排'
-shalong_detail = u'A212 讲怎么写微信公众账号后台，周六下午 1:30 开始'
+home_page = "http://210.30.97.149:2358"
+local_page = "210.30.97.149"
+ali_page = "115.28.2.165"
 
-environment = {
-        'latest':0}
+mail_host = "smtp.163.com"
+mail_user = "pedestal_peter"
+mail_pass = "15961374343"
+mail_postfix = "163.com"

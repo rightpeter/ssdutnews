@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usrebin/env python
 #-*- coding: utf-8 -*-
 
 import MySQLdb
@@ -10,8 +10,8 @@ import json
 import tornado.web
 import tornado.ioloop
 # tornado 3.x nolonger have this. use torndb
-#import tornado.database
-import torndb
+import tornado.database
+#import torndb
 import math
 import httplib
 import json
@@ -23,6 +23,7 @@ from email.mime.text import MIMEText
 from email.header import Header
 from db import *
 from config import *
+from testMyTools import *
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -42,126 +43,71 @@ mail_user = "pedestal_peter"
 mail_pass = "15961374343"
 mail_postfix = "163.com"
 
-def get_page_data(url):
-    try:
-        httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=2000)
-        httpClient.request('GET', url) 
-
-        response = httpClient.getresponse()
-        # print response.status
-        response.reason
-        raw_news = response.read()
-	return raw_news
-    except Exception, e:
-        print e
-    finally:
-        if httpClient:
-            httpClient.close()
-
-def send_mail(to_list, sub, context):
-    me = mail_user + "<" + mail_user + "@" + mail_postfix + ">"
-    msg = MIMEText(context, 'html', 'utf-8')
-    msg['Subject'] = sub
-    msg['From'] = me
-    msg['To'] = ";".join(to_list)
-    try:
-        send_smtp = smtplib.SMTP()
-        send_smtp.connect(mail_host)
-        send_smtp.login(mail_user, mail_pass)
-        send_smtp.sendmail(me, to_list, msg.as_string())
-        send_smtp.close()
-        return True
-    except (Exception, e):
-        print(str(e))
-        return False
-
-def update_news(pre_latest, new_latest): 
+def email_notice(pre_latest, new_latest): 
     if pre_latest < new_latest:
         NewsDatabase.reconnect()
         users = NewsDatabase.query("""SELECT name, address FROM emailTable""")
         print users
 
-        url = '/id/3843'
-        raw_news = get_page_data(url)
-        jsonDic = json.loads(raw_news)
+        print new_latest
+        news = testMyTools.get_a_news(new_latest)
 
         subject = u''.join([
-            jsonDic['title'],
+            news['title'],
             ' - ',
-            jsonDic['publisher']])
+            news['publisher']])
             
         context = """<a
-            href="http://210.30.97.149:2358/tucao/comm/%s">%s</a><br>"""%(new_latest,
+            href="http://tucao.pedestal.cn:2358/tucao/comm/%s">%s</a><br>"""%(new_latest,
                 subject) +\
                 """<div align="LEFT" style="width:600px;">""" +\
-                jsonDic['body'] +\
+                news['body'] +\
                 "</div>"
 
+        for i in range(pre_latest+1, new_latest):
+            print 'tmp_news: ', i
+            tmp_news = testMyTools.get_a_news(i) 
+
+            if tmp_news:
+                tmpTitle = u''.join([
+                    tmp_news['title'],
+                    ' - ',
+                    tmp_news['publisher']])
+
+                context += u"""您可能错过了：<a href="http://210.30.97.149:2358/tucao/comm/%s">%s</a><br>
+                    """ % (i, tmpTitle)
            
+        users = [{'name':'peter', 'address':'327888145@qq.com'}, {'name':'peter', 'address':'rightpeter.lu@gmail.com'}]
+        for user in users:
+            print user['name'], ':', user['address']
+            if (True == testMyTools.send_mail([user['address']], subject, context)):
+                print "success to ", user['name']
+            else:
+                print "fail to ", user['name']
         return True
     else:
         return False 
 
-class reptile:
-    def get_latest(self):
-        url = "/latest"
-        return json.loads(get_page_data(url))['id']
 
-    def add_news(self, id): 
-        url = "/id/%s" % id
-        raw_news = get_page_data(url)
+def update_latest():
+    maxid = testMyTools.get_latest_news_id()
+    maxnid = testMyTools.get_latest_news_nid()
+    latest = json.loads(testMyTools.get_json(ali_page, "/latest"))['id']
+    print datetime.datetime.now(), ':', maxnid, ',', latest
 
-        if raw_news:
-            json_dic = json.loads(raw_news)
-
-            NewsDatabase.execute("""INSERT newsTable
-                (nid,publisher,sha1,date,title,source,
-                link,source_link,clean_body,body)
-                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""" \
-                ,json_dic['id'],\
-                 json_dic['publisher'],\
-                 json_dic['sha1'],\
-                 json_dic['date'],\
-                 json_dic['title'],\
-                 json_dic['source'],\
-                 json_dic['link'],\
-                 json_dic['source_link'],\
-                 json_dic['clean_body'],\
-                 json_dic['body'])
-
-            #NewsDatabase.execute("""INSERT newsTable
-            #    (nid,publisher,sha1,date,title,source,
-            #    link,source_link,clean_body,body)
-            #    VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""" \
-            #    ,json_dic['id'],\
-            #     MySQLdb.escape_string(json_dic['publisher']),\
-            #     MySQLdb.escape_string(json_dic['sha1']),\
-            #     MySQLdb.escape_string(json_dic['date']),\
-            #     MySQLdb.escape_string(json_dic['title']),\
-            #     MySQLdb.escape_string(json_dic['source']),\
-            #     MySQLdb.escape_string(json_dic['link']),\
-            #     MySQLdb.escape_string(json_dic['source_link']),\
-            #     MySQLdb.escape_string(json_dic['clean_body']),\
-            #     MySQLdb.escape_string(json_dic['body']))
+    for i in range(maxnid+1, latest+1):
+        testMyTools.add_news(i)
+    
+    latest = testMyTools.get_latest_news_id()
+    print latest
+    email_notice(maxid, latest)
+    return latest
 
 
 if __name__ == "__main__":
     url = "/latest"
-    NewsDatabase.reconnect()
     while True:
-        maxid = NewsDatabase.query("""SELECT MAX(nid) AS mid FROM newsTable""")
-        if maxid[0]['mid']:
-            maxid = int(maxid[0]['mid'])
-        else:
-            maxid = 268 
-        print datetime.datetime.now(), ':', maxid
-
-        rep = reptile()
-        latest = rep.get_latest()
-
-        for i in range(maxid+1,latest+1):
-            print datetime.datetime.now(), ':', i
-            rep.add_news(i) 
+        update_latest()
         time.sleep(15)
 
     #while True:

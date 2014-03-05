@@ -22,57 +22,12 @@ from email.mime.text import MIMEText
 from email.header import Header
 from db import *
 from config import *
+from myTools import *
 
 reload(sys)
-sys.setdefaultencoding('gb2312')
+sys.setdefaultencoding('utf-8')
 
 from tornado.options import define, options
-
-# define("port", default=2357, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
-
-NewsDatabase.reconnect()
-home_page = "http://210.30.97.149:2358"
-local_page = "210.30.97.149"
-ali_page = "115.28.2.165"
-
-mail_host = "smtp.163.com"
-mail_user = "pedestal_peter"
-mail_pass = "15961374343"
-mail_postfix = "163.com"
-
-def get_page_data(url):
-    try:
-        httpClient = httplib.HTTPConnection(ali_page, 8000, timeout=2000)
-        httpClient.request('GET', url) 
-
-        response = httpClient.getresponse()
-        # print response.status
-        response.reason
-        raw_news = response.read()
-	return raw_news
-    except Exception, e:
-        print e
-    finally:
-        if httpClient:
-            httpClient.close()
-
-def send_mail(to_list, sub, context):
-    me = mail_user + "<" + mail_user + "@" + mail_postfix + ">"
-    msg = MIMEText(context, 'html', 'utf-8')
-    msg['Subject'] = sub
-    msg['From'] = me
-    msg['To'] = ";".join(to_list)
-    try:
-        send_smtp = smtplib.SMTP()
-        send_smtp.connect(mail_host)
-        send_smtp.login(mail_user, mail_pass)
-        send_smtp.sendmail(me, to_list, msg.as_string())
-        send_smtp.close()
-        return True
-    except (Exception, e):
-        print(str(e))
-        return False
 
 def update_news(pre_latest, new_latest): 
     if pre_latest < new_latest:
@@ -81,7 +36,7 @@ def update_news(pre_latest, new_latest):
         print users
 
         url = '/id/%s' % new_latest
-        raw_news = get_page_data(url)
+        raw_news = myTools.get_json(ali_page, url)
         jsonDic = json.loads(raw_news)
 
         subject = u''.join([
@@ -98,7 +53,7 @@ def update_news(pre_latest, new_latest):
 
         for i in range(pre_latest+1, new_latest):
             url = '/id/%s' % i
-            tmp_news = get_page_data(url)
+            tmp_news = myTools.get_json(ali_page, url)
             tmpJsonDic = json.loads(tmp_news)
 
             tmpTitle = u''.join([
@@ -111,7 +66,7 @@ def update_news(pre_latest, new_latest):
            
         for user in users:
             print user['name'], ':', user['address']
-            if (True == send_mail([user['address']], subject, context)):
+            if (True == myTools.send_mail([user['address']], subject, context)):
                 print "success to ", user['name']
             else:
                 print "fail to ", user['name']
@@ -123,7 +78,7 @@ if __name__ == "__main__":
     url = "/latest"
     while True:
         print 'xixi'
-        raw_news = get_page_data(url)
+        raw_news = myTools.get_json(ali_page, url)
         jsonDic = json.loads(raw_news)
 
         new_latest = jsonDic['id'] 

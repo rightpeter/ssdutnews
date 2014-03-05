@@ -37,6 +37,9 @@
       </div>
       <div class="col-md-2">
         <input type="hidden" id="id" name="id"  value="{{ nid }}"/>
+        <input type="hidden" id="latest" value="{{ latest }}"/>
+        <input type="hidden" id="total" value="{{ total }}">
+   
         <div class="btn btn-block btn-info" id="tucao-submit">吐槽</div>
       </div>
     </div>
@@ -59,7 +62,7 @@
     {% end %}
   </div>
   <article>
-    <div id="news-links-fixed">
+     <div id="news-links-fixed">
       <a class="btn btn-inverse disabled" id="prevpage">上一条</a>
       <a class="btn btn-inverse disabled" id="nextpage">下一条</a>
     </div>

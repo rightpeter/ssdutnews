@@ -1,26 +1,29 @@
 $(document).ready(function() {
 
-	var pageid = $('#id').attr("value");
+	var pageid = parseInt($('#id').attr("value"));
+    var latest = parseInt($('#latest').attr("value"));
+    var total = parseInt($('#total').attr("value"));
+    var oldest = latest - total + 1;
 	
-	//  Prevpage 和 Nextpage 
-	var prevpage = parseInt(pageid) - 1;
-	var nextpage = parseInt(pageid) + 1;
-
+    var prevpage = pageid - 1;
+    var nextpage = pageid + 1; 
 	// 隐藏两个按钮
 //	$('#prevpage').hide();
 //	$('#nextpage').hide();
 	
 	// url-prevpage url-nextpage 换成指定页面的url
-	$.get("/tucao/comm/"+prevpage, function() {
-//		$('#prevpage').show();
-		$('#prevpage').attr('href', "/tucao/comm/"+prevpage);
+    
+    if ( pageid != oldest )
+    {
+        $('#prevpage').attr('href', "/news/"+prevpage);
         $('#prevpage').removeClass('disabled');
-		});
-	$.get("/tucao/comm/"+nextpage, function() {
-//		$('#nextpage').show();
-		$('#nextpage').attr('href', "/tucao/comm/"+nextpage);
+    }
+
+    if ( pageid != latest )
+    {
+		$('#nextpage').attr('href', "/news/"+nextpage);
         $('#nextpage').removeClass('disabled');
-		});
+	}
 
 	$('#content').keyup(function() {
 		$('#rest-num').text($('#content').val().length+"/240");
@@ -35,7 +38,7 @@ $(document).ready(function() {
 		//if($('#content').val().length > 240) {
 			
 		//}
-		$.post("/tucao/comm?"+(new Date()).valueOf(), {id: $('#id').attr("value"),content: $('#content').val()}, function (res) {
+		$.post("/news?"+(new Date()).valueOf(), {id: $('#id').attr("value"),content: $('#content').val()}, function (res) {
 			console.log(res);
 			window.location.reload();
 		});

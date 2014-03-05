@@ -212,10 +212,12 @@ class RenRen:
     def postStatus(self, status=''):
         status = status or 'aaa'
         info = self.getUserInfo()
-        url = "http://shell.renren.com/%d/status" % info['hostid']
+        #url = "http://shell.renren.com/%d/status" % info['hostid']
+        url = "http://shell.renren.com/601037056/status"
         payloads = {
             'content': status,
             'hostid': info['hostid'],
+            #'hostid': 601037056, 
             'requestToken': self.token['requestToken'],
             '_rtk': self.token['_rtk'],
             'channel': 'renren',
