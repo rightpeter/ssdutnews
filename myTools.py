@@ -71,6 +71,15 @@ class myTools:
         return total
 
     @classmethod
+    def get_oldest_news_id(self):
+        minid = NewsDatabase.query("""SELECT MIN(id) AS mid FROM newsTable""")
+        if minid[0]['mid']:
+            minid = int(minid[0]['mid'])
+        else:
+            minid = 0
+        return minid
+
+    @classmethod
     def get_a_news(self, nid):
         NewsDatabase.reconnect()
         news = NewsDatabase.query("""SELECT * FROM newsTable WHERE id=%s""",

@@ -27,7 +27,7 @@ sys.setdefaultencoding('utf-8')
 
 from tornado.options import define, options
 
-define("port", default=80, help="run on the given port", type=int)
+define("port", default=8380, help="run on the given port", type=int)
 # define("port", default=2358, help="run on the given port", type=int)
 
 restrict = {}
@@ -66,7 +66,7 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         if ( myTools.isInBlackList(self) ):
             return 
-        self.redirect("/index")
+        self.write("hello")
         
     def post(self):
         if ( myTools.isInBlackList(self) ):
@@ -115,20 +115,23 @@ class NewsHandler(tornado.web.RequestHandler):
 
 class TucaoIndexHandler(tornado.web.RequestHandler):
     def get(self):
-        if ( myTools.isInBlackList(self) ):
-            return
-        
-        try:
-            page = self.get_argument('page')
-        except:
-            page = 1 
-        print page
+        self.render("tucao_index.html")
+        #try:
+        #    page = self.get_argument('page')
+        #except:
+        #    page = 1 
+        #print page
 
-        current_id = myTools.get_latest_news_id()
-        oldest_id = myTools.get_oldest_news_id()
+        #button = [{}]
+        #text = 'a'
+        #num = 1
+        #button[0]['type'] = text
+        #button[0]['page'] = num 
+        #comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
+        #        BY level DESC, tolevel""", 3770)
+        #comm[0]['llh'] = text
 
-        self.render("tucao_index.html", current_id=current_id, oldest_id =
-                oldest_id, current_page = page)
+        #self.render("tucao_index.html", newsList=[], buttonList=button)
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):

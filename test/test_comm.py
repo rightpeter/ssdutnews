@@ -115,6 +115,7 @@ class NewsHandler(tornado.web.RequestHandler):
 
 class TucaoIndexHandler(tornado.web.RequestHandler):
     def get(self):
+        page_size = 20
         if ( myTools.isInBlackList(self) ):
             return
         
@@ -124,11 +125,14 @@ class TucaoIndexHandler(tornado.web.RequestHandler):
             page = 1 
         print page
 
-        current_id = myTools.get_latest_news_id()
+        latest_id = myTools.get_latest_news_id()
         oldest_id = myTools.get_oldest_news_id()
 
-        self.render("tucao_index.html", current_id=current_id, oldest_id =
-                oldest_id, current_page = page)
+        first_id = latest_id - (page-1)*page_size
+        last_id = first_id - page_size + 1 
+
+        
+        self.render("tucao_index.html", newsList=newsList, buttonList=buttonList)
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):
