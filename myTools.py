@@ -24,10 +24,6 @@ from email.header import Header
 from db import *
 from config import *
 
-home_page = "http://210.30.97.149:2358"
-local_page = "210.30.97.149"
-ali_page = "115.28.2.165"
-
 class myTools:
     @classmethod
     def get_json(self, domain, url):
@@ -81,7 +77,6 @@ class myTools:
 
     @classmethod
     def get_a_news(self, nid):
-        NewsDatabase.reconnect()
         news = NewsDatabase.query("""SELECT * FROM newsTable WHERE id=%s""",
                 nid)
         if len(news):
@@ -89,6 +84,27 @@ class myTools:
         else:
             return {} 
 
+
+    @classmethod
+    def get_news_list(self, min_id, max_id):
+        newsList = NewsDatabase.query("""SELECT * FROM newsTable WHERE id<=%s
+                and id>=%s ORDER BY id DESC""", max_id, min_id)
+        if len(newsList):
+            return newsList
+        else:
+            return {}
+
+    @classmethod
+    def get_password_by_email(self, email):
+        password = NewsDatabase.query("""SELECT password FROM usersTable WHERE
+            email=%s""", email)[0]['password']
+        return password
+
+    @classmethod
+    def get_name_by_email(self, email):
+        name = NewsDatabase.query("""SELECT name FROM usersTable WHERE
+                email=%s""", email)[0]['name']
+        return name
 
     @classmethod
     def send_mail(self, to_list, sub, context):
@@ -139,8 +155,33 @@ class myTools:
 
 
     @classmethod
-    def isInBlackList(self, httprequest):
-        ip = httprequest.request.remote_ip.decode('utf-8')
+    def is_a_attack(self, httprequest):
+        ip = httprequest.request.remote_ip
+
+        if ( ip in ENV_DICT['blacklist'] ):
+            print "In black list"
+            return True
+       
+        if ( ip in ENV_DICT['restrict'] ):
+            if ( time.time() - ENV_DICT['restrict'][ip][0] < 5 ):
+                httprequest.write("less than 5 second")
+                print ENV_DICT['restrict'][ip][0]
+                print time.time()
+                print "less than 5 second"
+                httprequest.write("less than 5 second")
+                return True
+            if ( ENV_DICT['restrict'][ip][1] > 1000 ):
+                httprequest.write("too much")
+                NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", ip) 
+                ENV_DICT['blacklist'].append(ip)
+                print ENV_DICT['restrict'][ip][1]
+                print "too much"
+                httprequest.write("no attack!")
+                return True
+        else:
+            ENV_DICT['restrict'][ip] = [0, 0]
+        
+        
         print "-----------------------------one request-----------------------------"
         print "method: %s" % httprequest.request.method
         print "uri: %s" % httprequest.request.uri
@@ -148,13 +189,39 @@ class myTools:
         print "body: %s" % httprequest.request.body
         print "time: %s" % time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
         print "-----------------------------one request-----------------------------"
-        # print blacklist
-        # print blacklist[0]
-        # print ip
-        # print (ip in blacklist)
-        if ( ip in env_dict['blacklist'] ):
-            print "In black list"
-            return True
-        else:
-            return False
+        return False
 
+    @classmethod
+    def post_once(self, httprequest):
+        ip = httprequest.request.remote_ip
+        ENV_DICT['restrict'][ip][1] += 1
+        ENV_DICT['restrict'][ip][0] = time.time()
+        print ("Insert comm")
+        print ENV_DICT['restrict'][ip][1]
+       
+
+    @classmethod
+    def is_email_unique(self, email):
+        email_sql = NewsDatabase.query("""SELECT email FROM usersTable WHERE
+            email=%s""", email)
+        if len(email_sql):
+            return False
+        else:
+            return True
+
+    @classmethod
+    def is_name_unique(self, name):
+        name_sql = NewsDatabase.query("""SELECT name FROM usersTable WHERE
+            name=%s""", name)
+        if len(name_sql):
+            return False
+        else:
+            return True
+
+    @classmethod
+    def insert_a_user(self, user):
+        NewsDatabase.execute("""INSERT usersTable(email, name, password)
+                VALUES(%s, %s, %s)""", user['email'], user['name'], user['password']) 
+
+    #@classmethod
+    #def has_secure_cookie(self, request):

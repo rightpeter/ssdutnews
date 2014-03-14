@@ -1,0 +1,27 @@
+.col-lg-4 {
+	text-align: center;
+}
+
+body {
+	background: #eee;
+}
+
+.top-blank {
+	margin-top: 50px;
+}
+
+.banner {
+    margin-top: 50px;
+    min-height: 475px;
+}
+
+.banner ul li a{
+    background:#7300FF;
+}
+
+.navbar-right a{
+    display: inline-block;
+    vertical-align: middle;
+}
+
+

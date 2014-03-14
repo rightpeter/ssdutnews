@@ -1,13 +1,14 @@
 #encoding=utf-8
-env_dict = {}
+ENV_DICT = {}
+
 db_config = 'mysql://ssdutnews:ssdutnewsplayswell@127.0.0.1/ssdutnews'
 
-update_interval = 15 # seconds
+UPDATE_INTERVAL = 15 # seconds
 
-renren_email = 'pedestal_peter@163.com'
-renren_pw = 'pedestaldlut'
+RENREN_EMAIL = 'pedestal_peter@163.com'
+RENREN_PW = 'pedestaldlut'
 
-home_page = "http://210.30.97.149:2358"
+HOME_PAGE = "http://tucao.pedestal.cn"
 local_page = "210.30.97.149"
 ali_page = "115.28.2.165"
 

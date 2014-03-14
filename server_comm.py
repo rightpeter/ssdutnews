@@ -21,6 +21,7 @@ import threading
 from config import *
 from db import *
 from myTools import *
+import uimodules
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -28,9 +29,7 @@ sys.setdefaultencoding('utf-8')
 from tornado.options import define, options
 
 define("port", default=80, help="run on the given port", type=int)
-# define("port", default=2358, help="run on the given port", type=int)
-
-restrict = {}
+# define("port", default=2357, help="run on the given port", type=int)
 
 class CJsonEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -43,9 +42,12 @@ class CJsonEncoder(json.JSONEncoder):
 
 class Application(tornado.web.Application):
     def __init__(self):
-        self.max_comm = 5000
+        #self.max_comm = 5000
         handlers = [
             (r'/', MainHandler),
+            (r'/api', APIHandler),
+            (r'/signin', SigninHandler),
+            (r'/signup', SignupHandler),
             (r'/id/(\d+)$', NewsHandler),
             (r'/renrencallback', RenrenCallBackHandler),
             (r'/renrengettoken', RenrenGetTokenHandler),
@@ -59,17 +61,16 @@ class Application(tornado.web.Application):
         settings = dict(
                 template_path=os.path.join(os.path.dirname(__file__), "templates"),
                 static_path=os.path.join(os.path.dirname(__file__), "static"),
+                ui_modules=uimodules
         )
         tornado.web.Application.__init__(self, handlers, **settings)
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        if ( myTools.isInBlackList(self) ):
-            return 
         self.redirect("/index")
         
     def post(self):
-        if ( myTools.isInBlackList(self) ):
+        if ( myTools.is_a_attack(self) ):
             return 
         # self.set_header("Content-Type", "application/json")
         raw_body = str(self.request.body)
@@ -79,6 +80,67 @@ class MainHandler(tornado.web.RequestHandler):
         print jsonDic['id']
         self.write(jsonDic)
         
+class APIHandler(tornado.web.RequestHandler):
+    def get(self):
+        jsonDict = {}
+        api_type = self.get_argument('type')
+        value = self.get_argument('value')
+        call_back = self.get_argument('callback')
+        jsonDict['value'] = value
+        if api_type == 'EMAIL':
+            jsonDict['type'] = "EMAIL"
+            if myTools.is_email_unique(value):
+                jsonDict['status'] = "UNIQUE"
+            else:
+                jsonDict['status'] = "REPEATED"
+
+        if api_type == 'NAME':
+            jsonDict['type'] = "NAME"
+            if myTools.is_name_unique(value): 
+                jsonDict['status'] = "UNIQUE"
+            else:
+                jsonDict['status'] = "REPEATED"
+
+        encoded_json = json.dumps(jsonDict)
+        call_back_json = '%s(%s)' % (call_back, encoded_json)
+        self.write(call_back_json)
+
+class SigninHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("signin.html")
+
+    def post(self):
+        if ( myTools.is_a_attack(self) ):
+            return 
+       
+        self.set_header("Content-Type", "text/plain")
+
+        email = self.get_argument("email")
+        password = self.get_argument("password")
+        print "email: ", email
+        print "password: ", password
+
+class SignupHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("signup.html")
+
+    def post(self):
+        if ( myTools.is_a_attack(self) ):
+            return 
+       
+        print self.request
+        user = {}
+        user['email'] = self.get_argument('email')
+        user['name'] = self.get_argument('name')
+        user['password'] = self.get_argument('password')
+        re_password = self.get_argument('repassword')
+        is_subscribed = self.get_argument('is_subscribed')
+        print is_subscribed
+
+        if user['password'] == re_password:
+            if myTools.is_email_unique(user['email']) and myTools.is_name_unique(user['name']):
+                myTools.insert_a_user(user)
+
 class RenrenCallBackHandler(tornado.web.RequestHandler):
     def get(self):
         code = self.get_argument('code')
@@ -104,8 +166,6 @@ class RenrenGetTokenHandler(tornado.web.RequestHandler):
 
 class NewsHandler(tornado.web.RequestHandler):
     def get(self, nnid):
-        if ( myTools.isInBlackList(self) ):
-            return
         nid = int(nnid)
         news = myTools.get_a_news(nid)
         news['id'] = news['nid']
@@ -115,25 +175,38 @@ class NewsHandler(tornado.web.RequestHandler):
 
 class TucaoIndexHandler(tornado.web.RequestHandler):
     def get(self):
-        if ( myTools.isInBlackList(self) ):
-            return
-        
         try:
-            page = self.get_argument('page')
+            page = int(self.get_argument('page'))
         except:
             page = 1 
-        print page
 
-        current_id = myTools.get_latest_news_id()
+        page_size = 20
+        latest_id = myTools.get_latest_news_id()
         oldest_id = myTools.get_oldest_news_id()
 
-        self.render("tucao_index.html", current_id=current_id, oldest_id =
-                oldest_id, current_page = page)
+        total_pages = (myTools.get_total_news_num()-1) / page_size + 1
+        if page>total_pages or page<1:
+            page = 1
+        max_id = latest_id - (page-1)*page_size
+        if page == total_pages:
+            min_id = myTools.get_oldest_news_id()
+        else:
+            min_id = max_id - page_size + 1
+        #print 'latest_id: ', latest_id
+        #print 'min_id: ', min_id
+        #print 'max_id: ', max_id
+        #print 'page: ', page
+        newsList = myTools.get_news_list(min_id, max_id)
+        visible_pages = 10
+
+        self.render("tucao_index.html", newsList=newsList, total_pages=total_pages, current_page=page,
+                visible_pages=visible_pages)
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):
-        if ( myTools.isInBlackList(self) ):
+        if ( myTools.is_a_attack(self) ):
             return 
+
         NewsDatabase.reconnect()
         nid = int(nnid)
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
@@ -144,13 +217,14 @@ class TucaoHandler(tornado.web.RequestHandler):
         self.write(reply)
 
     def post(self):
-        if ( myTools.isInBlackList(self) ):
+        if ( myTools.is_a_attack(self) ):
             return 
+
         print ("In post")
         NewsDatabase.reconnect()
 
         remote_ip = self.request.remote_ip
-        if ( restrict.has_key( remote_ip ) ):
+        if ( restrict.has_key(remote_ip) ):
             if ( time.time() - restrict[remote_ip][0] < 5 ):
                 self.write("less than 5 second")
                 print restrict[remote_ip][0]
@@ -201,7 +275,7 @@ class TucaoHandler(tornado.web.RequestHandler):
                 NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
                 blacklist.append(remote_ip)
                 print blacklist
-                myTools.isInBlackList(self)
+                myTools.is_a_attack(self)
 
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
@@ -215,13 +289,12 @@ class TucaoHandler(tornado.web.RequestHandler):
 
 class TucaoCommHandler(tornado.web.RequestHandler):
     def get(self, nnid):
-        if ( myTools.isInBlackList(self) ):
-            return 
         NewsDatabase.reconnect()
         nid = int(nnid)
 
         news = myTools.get_a_news(nid)
         
+        news['body'] = news['body'].replace('href="/Attachments/file', 'href="http://ssdut.dlut.edu.cn/Attachments/file')
         comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
                 BY level DESC, tolevel""", nid)
         latest = myTools.get_latest_news_id()
@@ -233,32 +306,12 @@ class TucaoCommHandler(tornado.web.RequestHandler):
                 commList=comm, nid=nid, latest=latest, total=total)
 
     def post(self):
-        if ( myTools.isInBlackList(self) ):
+        if ( myTools.is_a_attack(self) ):
+            self.redirect("/blacklist")
             return 
-        self.application.max_comm -=1
-        if self.application.max_comm <= 0:
-            return
+
         print ("In post")
         NewsDatabase.reconnect()
-
-        remote_ip = self.request.remote_ip
-        if ( restrict.has_key( remote_ip ) ):
-            if ( time.time() - restrict[remote_ip][0] < 5 ):
-                self.write("less than 5 second")
-                print restrict[remote_ip][0]
-                print time.time()
-                print "less than 5 second"
-                return
-            if ( restrict[remote_ip][1] > 1000 ):
-                self.write("too much")
-                NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
-                blacklist.append(remote_ip)
-                print blacklist
-                print restrict[remote_ip][1]
-                print "too much"
-                return 
-        else:
-            restrict[remote_ip] = [time.time(), 0]
 
         raw_body = str(self.request.body)
         print self.request.remote_ip
@@ -288,18 +341,14 @@ class TucaoCommHandler(tornado.web.RequestHandler):
             
         if (content == 'water'):
                 NewsDatabase.execute(u"""INSERT blackList(ip) VALUES(%s)""", remote_ip) 
-                blacklist.append(remote_ip)
-                print blacklist
-                myTools.isInBlackList(self)
+                ENV_DIC['blacklist'].append(remote_ip)
+                myTools.is_a_attack(self)
 
         NewsDatabase.execute(u"""INSERT commTable(id, level, tolevel,
                     content) VALUES(%r, %r, %r, %s)""", nid, level, tolevel,
                     content)
 
-        restrict[remote_ip][1] += 1
-        restrict[remote_ip][0] = time.time()
-        print ("Insert comm")
-        print restrict[remote_ip][1]
+        myTools.post_once(self)
         self.redirect("/news/%d" % nid)
 
 class BlackListHandler(tornado.web.RequestHandler):
@@ -312,15 +361,16 @@ def main():
     tornado.ioloop.IOLoop.instance().start()
 
 def init():
-    env_dict['latest'] = myTools.get_latest_news_id()
-    env_dict['total'] = myTools.get_total_news_num()
-    print env_dict['total']
+    ENV_DICT['latest'] = myTools.get_latest_news_id()
+    ENV_DICT['total'] = myTools.get_total_news_num()
+    print ENV_DICT['total']
 
     BLACKLIST = NewsDatabase.query("""SELECT * FROM blackList""")
-    env_dict['blacklist'] = []
+    ENV_DICT['blacklist'] = []
+    ENV_DICT['restrict'] = {}
     for blackdict in BLACKLIST:
-        env_dict['blacklist'].append(blackdict['ip'])
-    print env_dict['blacklist']
+        ENV_DICT['blacklist'].append(blackdict['ip'])
+    print ENV_DICT['blacklist']
 
 
 if __name__ == "__main__":

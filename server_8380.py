@@ -21,6 +21,7 @@ import threading
 from config import *
 from db import *
 from myTools import *
+import uimodules
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -28,7 +29,7 @@ sys.setdefaultencoding('utf-8')
 from tornado.options import define, options
 
 define("port", default=8380, help="run on the given port", type=int)
-# define("port", default=2358, help="run on the given port", type=int)
+# define("port", default=2357, help="run on the given port", type=int)
 
 restrict = {}
 
@@ -59,6 +60,7 @@ class Application(tornado.web.Application):
         settings = dict(
                 template_path=os.path.join(os.path.dirname(__file__), "templates"),
                 static_path=os.path.join(os.path.dirname(__file__), "static"),
+                ui_modules=uimodules
         )
         tornado.web.Application.__init__(self, handlers, **settings)
 
@@ -66,7 +68,7 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         if ( myTools.isInBlackList(self) ):
             return 
-        self.write("hello")
+        self.redirect("/index")
         
     def post(self):
         if ( myTools.isInBlackList(self) ):
@@ -115,23 +117,31 @@ class NewsHandler(tornado.web.RequestHandler):
 
 class TucaoIndexHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("tucao_index.html")
-        #try:
-        #    page = self.get_argument('page')
-        #except:
-        #    page = 1 
-        #print page
+        if ( myTools.isInBlackList(self) ):
+            return
+        
+        try:
+            page = int(self.get_argument('page'))
+        except:
+            page = 1 
 
-        #button = [{}]
-        #text = 'a'
-        #num = 1
-        #button[0]['type'] = text
-        #button[0]['page'] = num 
-        #comm = NewsDatabase.query("""SELECT * FROM commTable WHERE id=%r ORDER
-        #        BY level DESC, tolevel""", 3770)
-        #comm[0]['llh'] = text
+        page_size = 20
+        latest_id = myTools.get_latest_news_id()
+        oldest_id = myTools.get_oldest_news_id()
 
-        #self.render("tucao_index.html", newsList=[], buttonList=button)
+        total_pages = (myTools.get_total_news_num()-1) / page_size + 1
+        if page>total_pages or page<1:
+            page = 1
+        max_id = latest_id - (page-1)*page_size
+        if page == total_pages:
+            min_id = myTools.get_oldest_news_id()
+        else:
+            min_id = max_id - page_size + 1
+        newsList = myTools.get_news_list(min_id, max_id)
+        visible_pages = 10
+
+        self.render("tucao_index.html", newsList=newsList, total_pages=total_pages, current_page=page,
+                visible_pages=visible_pages)
 
 class TucaoHandler(tornado.web.RequestHandler):
     def get(self, nnid):
@@ -315,15 +325,15 @@ def main():
     tornado.ioloop.IOLoop.instance().start()
 
 def init():
-    env_dict['latest'] = myTools.get_latest_news_id()
-    env_dict['total'] = myTools.get_total_news_num()
-    print env_dict['total']
+    ENV_DICT['latest'] = myTools.get_latest_news_id()
+    ENV_DICT['total'] = myTools.get_total_news_num()
+    print ENV_DICT['total']
 
     BLACKLIST = NewsDatabase.query("""SELECT * FROM blackList""")
-    env_dict['blacklist'] = []
+    ENV_DICT['blacklist'] = []
     for blackdict in BLACKLIST:
-        env_dict['blacklist'].append(blackdict['ip'])
-    print env_dict['blacklist']
+        ENV_DICT['blacklist'].append(blackdict['ip'])
+    print ENV_DICT['blacklist']
 
 
 if __name__ == "__main__":

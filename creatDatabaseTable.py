@@ -10,12 +10,12 @@ import sys
 def installCommentTable():
     NewsDatabase.reconnect()
     NewsDatabase.execute("""CREATE TABLE `commTable`(
-            cid INT NOT NULL AUTO_INCREMENT, 
-            id int, 
-            level int, 
-            tolevel int, 
-            content text, 
-            posttime TIMESTAMP, 
+            `cid` INT NOT NULL AUTO_INCREMENT, 
+            `id` int, 
+            `level` int, 
+            `tolevel` int, 
+            `content` text, 
+            `posttime` TIMESTAMP, 
             PRIMARY KEY(cid)) 
     """)
 
@@ -23,28 +23,45 @@ def installCommentTable():
 def installEmailTable():
     NewsDatabase.reconnect()
     NewsDatabase.execute("""CREATE TABLE `emailTable`(
-            id INT NOT NULL AUTO_INCREMENT,
-            name VARCHAR(30),
-            address VARCHAR(50),
-            PRIMARY KEY(id))
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(30),
+            `address` VARCHAR(50),
+            PRIMARY` KEY(id))
     """)
 
 def installNewsTable():
     NewsDatabase.reconnect()
     NewsDatabase.execute("""CREATE TABLE `newsTable`(
-            id INT NOT NULL AUTO_INCREMENT,
-            nid INT NOT NULL,
-            publisher VARCHAR(100),
-            sha1 VARCHAR(100),
-            date VARCHAR(100),
-            title text,
-            source VARCHAR(100),
-            link VARCHAR(100),
-            source_link VARCHAR(100),
-            clean_body text,
-            body text,
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `nid` INT NOT NULL,
+            `publisher` VARCHAR(100),
+            `sha1` VARCHAR(100),
+            `date` VARCHAR(100),
+            `title` text,
+            `source` VARCHAR(100),
+            `link` VARCHAR(100),
+            `source_link` VARCHAR(100),
+            `clean_body` text,
+            `body text`,
             PRIMARY KEY(id))
             AUTO_INCREMENT=1000000
+    """)
+
+def installUsersTable():
+    NewsDatabase.reconnect()
+    NewsDatabase.execute("""CREATE TABLE `usersTable`(
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `email` VARCHAR(64) NOT NULL,
+            `name` VARCHAR(32) NOT NULL,
+            `password` VARCHAR(64) NOT NULL,
+            `last_login` timestamp,
+            `admin` TINYINT(1) DEFAULT '0',
+            `checked` TINYINT(1) DEFAULT '0',
+            `guest` TINYINT(1) DEFAULT '0',
+            PRIMARY KEY(id),
+            UNIQUE KEY `name` (`name`),
+            UNIQUE KEY `email` (`email`))
+            AUTO_INCREMENT=100000
     """)
 
 if __name__ == "__main__":
@@ -58,3 +75,6 @@ if __name__ == "__main__":
 
     if '-N' in sys.argv:
         installNewsTable()
+
+    if '-U' in sys.argv:
+        installUsersTable()

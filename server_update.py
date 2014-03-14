@@ -34,9 +34,6 @@ from tornado.options import define, options
 define("port", default=2358, help="run on the given port", type=int)
 
 NewsDatabase.reconnect()
-home_page = "http://210.30.97.149:2358"
-local_page = "210.30.97.149"
-ali_page = "115.28.2.165"
 
 mail_host = "smtp.163.com"
 mail_user = "pedestal_peter"
@@ -52,13 +49,14 @@ def email_notice(pre_latest, new_latest):
         print new_latest
         news = myTools.get_a_news(new_latest)
 
+        news['body'] = news['body'].replace('href="/Attachments/file', 'href="http://ssdut.dlut.edu.cn/Attachments/file')
         subject = u''.join([
             news['title'],
             ' - ',
             news['publisher']])
             
         context = """<a
-            href="http://tucao.pedestal.cn/news/%s">%s</a><br>"""%(new_latest,
+            href="%s/news/%s">%s</a><br>"""%(HOME_PAGE, new_latest,
                 subject) +\
                 """<div align="LEFT" style="width:600px;">""" +\
                 news['body'] +\
@@ -75,8 +73,8 @@ def email_notice(pre_latest, new_latest):
                     tmp_news['publisher']])
 
                 context += u"""您可能错过了：<a 
-                    href="http://tucao.pedestal.cn/news/%s">%s</a><br>
-                    """ % (i, tmpTitle)
+                    href="http://%s/news/%s">%s</a><br>
+                    """ % (HOME_PAGE, i, tmpTitle)
            
         #users = [{'name':'peter', 'address':'327888145@qq.com'}, {'name':'peter', 'address':'rightpeter.lu@gmail.com'}]
         for user in users:
@@ -109,32 +107,4 @@ if __name__ == "__main__":
     url = "/latest"
     while True:
         update_latest()
-        time.sleep(15)
-
-    #while True:
-    #    print 'xixi'
-    #    raw_news = get_page_data(url)
-    #    jsonDic = json.loads(raw_news)
-
-    #    new_latest = jsonDic['id'] 
-    #    try:
-    #        f = open('env_dict.pickle', 'rb')
-    #        env_dict = pickle.load(f)
-    #        f.close()
-    #    except:
-    #        env_dict = {}
-    #        env_dict['latest'] = new_latest-5
-    #        f = open('env_dict.pickle', 'wb')
-    #        pickle.dump(env_dict, f)
-    #        f.close()
-    #    pre_latest = env_dict['latest']
-
-    #    if update_news(pre_latest, new_latest):
-    #        env_dict['latest'] = new_latest
-    #        f = open('env_dict.pickle', 'wb')
-    #        pickle.dump(env_dict, f)
-    #        print 'update: %s %s' % (pre_latest, new_latest)
-    #    else:
-    #        print 'nothing'
-    #        
-    #    time.sleep(15)
+        time.sleep(UPDATE_INTERVAL)
