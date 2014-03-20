@@ -2,8 +2,11 @@
 #-*- coding: utf-8 -*-
 
 import MySQLdb
+import string
 import sys
 import os
+from os import urandom
+from random import choice
 import re
 import time
 import json
@@ -24,7 +27,19 @@ from email.header import Header
 from db import *
 from config import *
 
+
 class myTools:
+    @classmethod
+    def now(self):
+        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+
+    @classmethod
+    def generate_password(self, passwd_length, passwd_seed):
+        passwd = []
+        while len(passwd) < passwd_length:
+            passwd.append(choice(passwd_seed))
+        return ''.join(passwd)
+
     @classmethod
     def get_json(self, domain, url):
         try:
@@ -101,28 +116,115 @@ class myTools:
         return password
 
     @classmethod
+    def get_email_by_name(self, name):
+        user_email = NewsDatabase.query("""SELECT email FROM usersTable WHERE
+                name=%s""", name) 
+        if len(user_email):
+            user_email = user_email[0]['email']
+        else:
+            user_email = ''
+        return user_email
+
+    @classmethod
+    def get_id_by_name(self, name):
+        user_id = NewsDatabase.query("""SELECT id FROM usersTable WHERE
+                name=%s""", name)
+        if len(user_id):
+            user_id = int(user_id[0]['id'])
+        else:
+            user_id = -1 
+        return user_id
+
+    @classmethod
     def get_name_by_email(self, email):
         name = NewsDatabase.query("""SELECT name FROM usersTable WHERE
-                email=%s""", email)[0]['name']
+                email=%s""", email)
+        if len(name):
+            name = name[0]['name']
+        else:
+            name = ''
         return name
 
     @classmethod
-    def send_mail(self, to_list, sub, context):
-        me = mail_user + "<" + mail_user + "@" + mail_postfix + ">"
+    def get_name_by_id(self, user_id):
+        name = NewsDatabase.query("""SELECT name FROM usersTable WHERE
+                id=%s""", user_id)
+        if len(name):
+            name = name[0]['name']
+        else:
+            name = ''
+        return name
+
+    @classmethod
+    def send_mail(self, to_email, sub, context):
+        #if re.findall(re_email, to_email)[0][1] == 'qq':
+        #    poster = 'qq'
+        #else:
+        #    poster = '163'
+        poster = '163'
+
+        me = mail_poster[poster]['user'] + "<" + mail_poster[poster]['user'] + "@" + mail_poster[poster]['postfix'] + ">"
         msg = MIMEText(context, 'html', 'utf-8')
         msg['Subject'] = sub
         msg['From'] = me
-        msg['To'] = ";".join(to_list)
-        try:
-            send_smtp = smtplib.SMTP()
-            send_smtp.connect(mail_host)
-            send_smtp.login(mail_user, mail_pass)
-            send_smtp.sendmail(me, to_list, msg.as_string())
-            send_smtp.close()
+        msg['To'] = to_email
+        print msg
+        print mail_poster[poster]
+        #try:
+        send_smtp = smtplib.SMTP()
+        send_smtp.connect(mail_poster[poster]['host'])
+        send_smtp.login(mail_poster[poster]['user'], mail_poster[poster]['pass'])
+        send_smtp.sendmail(me, to_email, msg.as_string())
+        send_smtp.close()
+        return True
+        #except (Exception, e):
+        #    print(str(e))
+        #    return False
+
+    @classmethod
+    def update_check(self, email, code):
+        record = NewsDatabase.query("""SELECT * FROM checkTable WHERE
+                email=%s""", email)
+        if len(record):
+            NewsDatabase.execute("""UPDATE checkTable SET code=%s,
+                    check_time=%s WHERE email=%s""", code, self.now()[0], email)
+        else:
+            NewsDatabase.execute("""INSERT checkTable(email, code) VALUES(%s,
+                    %s)""", email, code)
+
+    @classmethod
+    def send_check_email(self, email):
+        passwd_seed = string.digits + string.ascii_letters + string.punctuation
+        code = self.generate_password(30, passwd_seed)
+        name = myTools.get_name_by_email(email)
+        self.update_check(email, code)
+        subject = '%s您好' % name
+        
+        code = tornado.escape.url_escape(code)
+        context = 'http://www.pedestal.cn:2357/api/check?email=%s&code=%s' % (email,
+                code)
+
+        name = self.get_name_by_email(email)
+        if (True == myTools.send_mail(email, subject, context)):
+            print 'success to ', name
             return True
-        except (Exception, e):
-            print(str(e))
+        else:
+            print 'fail to ', name
             return False
+
+    @classmethod
+    def check_email(self, email, code):
+        ccode = NewsDatabase.query("""SELECT code FROM checkTable WHERE
+            email=%s""", email)
+        if len(ccode):
+            ccode = ccode[0]['code']
+            print 'code: ', code
+            print 'ccode: ', ccode
+            if ccode == code: 
+                NewsDatabase.execute("""UPDATE usersTable SET checked=1 WHERE
+                        email=%s""", email)
+                return True
+        return False
 
     @classmethod
     def add_news(self, id): 
@@ -132,7 +234,7 @@ class myTools:
         if raw_news:
             json_dic = json.loads(raw_news)
 
-            print datetime.datetime.now(), ':', id, 'insert'
+            print self.now(), ':', id, 'insert'
             NewsDatabase.execute("""INSERT newsTable
                 (nid,publisher,sha1,date,title,source,
                 link,source_link,clean_body,body)
@@ -149,7 +251,7 @@ class myTools:
                  json_dic['body'])
             return True
         else:
-            print datetime.datetime.now(), ':', id, 'nothing'
+            print self.now(), ':', id, 'nothing'
             #NewsDatabase.execute("""INSERT newsTable(nid) VALUES(%s)""", 9999)
             return False
 
@@ -201,16 +303,18 @@ class myTools:
        
 
     @classmethod
-    def is_email_unique(self, email):
+    def is_email_exist(self, email):
+        re_email = r'^([[a-zA-Z0-9]+[_|\_|\.]?]*[a-zA-Z0-9]+)@([[a-zA-Z0-9]+[_|\_|\.]?]*[a-zA-Z0-9]+)\.[a-zA-Z]{2,4}$'
+        isEmail = bool(re.match(re_email, email, re.VERBOSE))
         email_sql = NewsDatabase.query("""SELECT email FROM usersTable WHERE
             email=%s""", email)
-        if len(email_sql):
+        if len(email_sql) or not isEmail:
             return False
         else:
             return True
 
     @classmethod
-    def is_name_unique(self, name):
+    def is_name_exist(self, name):
         name_sql = NewsDatabase.query("""SELECT name FROM usersTable WHERE
             name=%s""", name)
         if len(name_sql):
@@ -219,9 +323,89 @@ class myTools:
             return True
 
     @classmethod
-    def insert_a_user(self, user):
-        NewsDatabase.execute("""INSERT usersTable(email, name, password)
-                VALUES(%s, %s, %s)""", user['email'], user['name'], user['password']) 
+    def is_user_checked(self, email):
+        checked = NewsDatabase.query("""SELECT checked FROM usersTable WHERE
+            email=%s""", email)
+        if len(checked):
+            return checked[0]['checked']
+        else:
+            return False 
 
-    #@classmethod
-    #def has_secure_cookie(self, request):
+    @classmethod
+    def insert_a_user(self, user):
+        try:
+            NewsDatabase.execute("""INSERT usersTable(email, name, password,
+                subscribed) VALUES(%s, %s, %s, %s)""", user['email'], user['name'],
+                user['password'], user['subscribed']) 
+            return True
+        except:
+            return False
+
+    @classmethod
+    def get_current_user(self, request):
+        user = {}
+        name = request.get_current_user()
+        if name:
+            user['vip'] = {}
+            user['vip']['name'] = name
+            user['vip']['id'] = myTools.get_id_by_name(name)
+        name = request.get_secure_cookie('guest')
+        if name:
+            user['guest'] = {}
+            user['guest']['name'] = name
+            user['guest']['id']  = myTools.get_id_by_name(name)
+        return user
+        
+    @classmethod
+    def login(self, email, password):
+        if not self.is_email_exist(email):
+            check = self.get_password_by_email(email) 
+            if password == check:
+                NewsDatabase.execute("""UPDATE usersTable SET last_login=%s
+                        WHERE email=%s""",
+                        self.now()[0],
+                        email)
+                name = myTools.get_name_by_email(email)
+                print "email: ", email
+                print "name", name
+                print "password: ", password
+                return True
+        return False
+        
+    @classmethod
+    def follow(self, pid, fname):
+        fid = NewsDatabase.query("""SELECT id FROM usersTable WHERE name=%s""",
+                fname)
+        pname = NewsDatabase.query("""SELECT name FROM usersTable WHERE
+                id=%s""", pid)
+        if len(fid) and len(pname):
+            fid = fid[0]['id']
+            record = NewsDatabase.query("""SELECT id FROM fllwTable WHERE pid=%s
+                and fid=%s""", pid, fid)
+            if not len(record): 
+                NewsDatabase.execute("""INSERT fllwTable(pid, fid) VALUES(%s, %s)""", pid, fid)
+                return True
+        return False
+
+    @classmethod
+    def subscribe(self, name, subscribed):
+        user = NewsDatabase.query("""SELECT id, subscribed FROM usersTale WHERE
+            name=%s""", name)
+
+        if len(user):
+            user = user[0]
+            if int(user['subscribed']) != subscribed:
+                NewsDatabase.execute("""UPDATE usersTable SET subscribed=%s
+                        WHERE name=%s""", subscribed, name)
+                return True
+        return False
+
+    @classmethod
+    def change_passwd(self, email, passwd, new_passwd, re_new_passwd):
+        if myTools.login(email, passwd) and new_passwd==re_new_passwd:
+            NewsDatabase.execute("""UPDATE usersTable SET password=%s WHERE
+                    email=%s""", new_passwd, email)
+            return True
+        else:
+            return False
+

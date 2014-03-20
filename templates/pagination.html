@@ -1,16 +1,15 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='gb2312'>
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+<!-- <html>
     <link rel="stylesheet" href="{{ static_url("flat-ui/bootstrap/css/bootstrap.css") }}">
-    <script src="{{ static_url("script/jquery-2.0.3.min.js") }}"></script>
     <script src="{{ static_url("flat-ui/bootstrap/js/bootstrap.js") }}"></script>
-    <script src="{{ static_url("script/jquery.twbsPagination.js")
-        }}"></script>
-</head>
+<body> -->
 
-<body>
+<script>
+    var startPage = {{ current_page }};
+    var total_pages = {{ total_pages}};
+    var visible_pages = {{ visible_pages }};
+    var current_page = {{ current_page }};
+</script>
+
 <div id="content-wrapper">
     <div class="inner clearfix">
         <section id="main-content">
@@ -23,19 +22,3 @@
         <label id="page-content"></label>
     </div>
 </div>
-<script>
-var startPage = {{ current_page }};
-$('#pagination-demo').twbsPagination({
-        totalPages: {{ total_pages}},
-        visiblePages: {{ visible_pages }},
-        version: '1.1',
-        startPage: {{ current_page }},
-        onPageClick: function (event, page) {
-            if (page != startPage){
-                window.location.href = "index?page=" + page;
-            }
-        }
-});
-</script>
-</body>
-</html>

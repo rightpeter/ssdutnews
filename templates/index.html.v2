@@ -41,6 +41,13 @@
 				</li>
 			</ul>
 			<div class="navbar-right" style="padding-top:10px">
+                <div class="link-list">
+                    <a href="#" class="btn-link navbar-link">Username</a>&nbsp;|
+                    <a href="#" class="btn-link
+                        navbar-link"><small>Profile</small></a>
+                            <a href="#" class="btn-link
+                                navbar-link"><small>Logout</small></a>
+                </div>
 			</div>
 		</div>
 		</nav>

@@ -12,6 +12,10 @@
 
 </head>
 <body>
+{% module NavbarPedestal(user, url) %}
+<br>
+<br>
+<br>
 <div class="container">
   <article>
     <section>
@@ -43,6 +47,7 @@
         <input type="hidden" id="id" name="id"  value="{{ nid }}"/>
         <input type="hidden" id="latest" value="{{ latest }}"/>
         <input type="hidden" id="total" value="{{ total }}">
+      {% raw xsrf_form_html() %}
    
         <div class="btn btn-block btn-info" id="tucao-submit">吐槽</div>
       </div>

@@ -31,9 +31,7 @@ sys.setdefaultencoding('utf-8')
 from tornado.options import define, options
 
 # define("port", default=2357, help="run on the given port", type=int)
-define("port", default=2358, help="run on the given port", type=int)
-
-NewsDatabase.reconnect()
+# define("port", default=2358, help="run on the given port", type=int)
 
 mail_host = "smtp.163.com"
 mail_user = "pedestal_peter"
@@ -43,7 +41,8 @@ mail_postfix = "163.com"
 def email_notice(pre_latest, new_latest): 
     if pre_latest < new_latest:
         NewsDatabase.reconnect()
-        users = NewsDatabase.query("""SELECT name, address FROM emailTable""")
+        users = NewsDatabase.query("""SELECT name, email FROM usersTable WHERE
+                subscribed=1""")
         print users
 
         print new_latest
@@ -78,8 +77,8 @@ def email_notice(pre_latest, new_latest):
            
         #users = [{'name':'peter', 'address':'327888145@qq.com'}, {'name':'peter', 'address':'rightpeter.lu@gmail.com'}]
         for user in users:
-            print user['name'], ':', user['address']
-            if (True == myTools.send_mail([user['address']], subject, context)):
+            print user['name'], ':', user['email']
+            if (True == myTools.send_mail([user['email']], subject, context)):
                 print "success to ", user['name']
             else:
                 print "fail to ", user['name']

@@ -1,4 +1,4 @@
-#!/usr/bi/env python
+#!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
 import sys
@@ -45,18 +45,28 @@ class Application(tornado.web.Application):
         #self.max_comm = 5000
         handlers = [
             (r'/', MainHandler),
+            # API -----------------
             (r'/api', APIHandler),
+            (r'/api/follow', FllwHandler),
+            (r'/api/subscribed', SbscHandler),
+            (r'/api/check', CheckHandler),
+            (r'/api/cgpasswd', ChangePasswdHandler),
             (r'/login', LoginHandler),
+            (r'/logout', LogoutHandler),
             (r'/signup', SignupHandler),
             (r'/id/(\d+)$', NewsHandler),
             (r'/renrencallback', RenrenCallBackHandler),
             (r'/renrengettoken', RenrenGetTokenHandler),
+            
+            (r'/404', Error404Handler),
             (r'/index', TucaoIndexHandler),
-            (r'/tucao', TucaoHandler),
-            (r'/tucao/(\d+)$', TucaoHandler),
+            (r'/about', AboutHandler),
+            #(r'/tucao', TucaoHandler),
+            #(r'/tucao/(\d+)$', TucaoHandler),
             (r'/news', TucaoCommHandler),
             (r'/news/(\d+)$', TucaoCommHandler),
-            (r'/blacklist', BlackListHandler),
+            (r'/home/(\d+)$', HomeHandler),
+            #(r'/blacklist', BlackListHandler),
         ]
         settings = { 
                 "template_path": os.path.join(os.path.dirname(__file__), "templates"),
@@ -70,12 +80,34 @@ class Application(tornado.web.Application):
 
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
-        return self.get_secure_cookie("check")
+        return self.get_secure_cookie("name")
 
 class MainHandler(BaseHandler):
     #@tornado.web.authenticated
     def get(self):
-        self.render("index.html")
+        slides = [{}, {}, {}]
+        slides[0]['image'] = "pedestal.jpg"
+        slides[0]['name'] = "周知吐槽"
+        slides[0]['descript'] = "尽情地为自己呐喊"
+        slides[0]['href'] = "/about"
+        slides[0]['button'] = "关于我们"
+
+        slides[1]['image'] = "tucao_slide.jpg"
+        slides[1]['name'] = "周知吐槽"
+        slides[1]['descript'] = "尽情地为自己呐喊"
+        slides[1]['href'] = "/index"
+        slides[1]['button'] = "开始吐槽"
+
+        slides[2]['image'] = "pedestal_welcome.jpg"
+        slides[2]['name'] = "这只是一个大标题"
+        slides[2]['descript'] = "用来测试轮播插件这个复杂的东西"
+        slides[2]['href'] = "/signup"
+        slides[2]['button'] = "加入我们"
+       
+        user = myTools.get_current_user(self)
+        self.set_cookie("url", self.request.uri)
+        url = self.request.uri
+        self.render("index.html", slides=slides, user=user, url=url)
         
 class APIHandler(BaseHandler):
     def get(self):
@@ -86,14 +118,14 @@ class APIHandler(BaseHandler):
         jsonDict['value'] = value
         if api_type == 'EMAIL':
             jsonDict['type'] = "EMAIL"
-            if myTools.is_email_unique(value):
+            if myTools.is_email_exist(value):
                 jsonDict['status'] = "UNIQUE"
             else:
                 jsonDict['status'] = "REPEATED"
 
         if api_type == 'NAME':
             jsonDict['type'] = "NAME"
-            if myTools.is_name_unique(value): 
+            if myTools.is_name_exist(value): 
                 jsonDict['status'] = "UNIQUE"
             else:
                 jsonDict['status'] = "REPEATED"
@@ -101,6 +133,28 @@ class APIHandler(BaseHandler):
         encoded_json = json.dumps(jsonDict)
         call_back_json = '%s(%s)' % (call_back, encoded_json)
         self.write(call_back_json)
+
+class Error404Handler(BaseHandler):
+    def get(self):
+        user = myTools.get_current_user(self)
+        url = self.request.uri
+        self.render('404.html', user=user, url=url)
+
+class HomeHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self, home_id):
+        home_name = myTools.get_name_by_id(home_id)
+        user = myTools.get_current_user(self)
+        url = self.request.uri
+        self.set_cookie('url', url)
+        self.render('home.html', home_name=home_name, user=user, url=url)
+
+class AboutHandler(BaseHandler):
+    def get(self):
+        user = myTools.get_current_user(self) 
+        url = self.request.uri
+        self.set_cookie('url', url)
+        self.render('about.html', user=user, url=url)
 
 class LoginHandler(BaseHandler):
     def get(self):
@@ -112,44 +166,127 @@ class LoginHandler(BaseHandler):
        
         self.set_header("Content-Type", "text/plain")
 
-        email = self.get_argument("email")
-        password = self.get_argument("password")
-        if not myTools.is_email_unique(email):
-            check = myTools.get_password_by_email(email) 
-            if password == check:
-                print password, check
-                name = myTools.get_name_by_email(email)
-                self.set_secure_cookie("check", name)
-                self.set_cookie("user", name)
-                self.redirect("/")
-                print "email: ", email
-                print "name", name
-                print "password: ", password
+        email = self.get_argument('email')
+        password = self.get_argument('password')
+
+        if myTools.login(email, password):
+            name = myTools.get_name_by_email(email)
+            if myTools.is_user_checked(email):
+                self.set_secure_cookie('name', name)
+                url = self.get_cookie('url')
+                self.redirect(url)
             else:
-                self.write("Login Failed!")
+                self.set_secure_cookie('guest', name)
+                self.redirect('/signup')
         else:
-            self.write("No such email!")
+            self.write("Login Failed!")
             
+class LogoutHandler(BaseHandler):
+    def get(self):
+        url = self.get_cookie('url')
+        self.clear_cookie('name')
+        self.clear_cookie('guest')
+        self.redirect(url)
+
 class SignupHandler(BaseHandler):
     def get(self):
-        self.render("signup.html")
+        user = myTools.get_current_user(self)
+        #if self.get_secure_cookie('guest'):
+        #    user['name'] = self.get_secure_cookie('guest')
+        #    user['id'] = myTools.get_id_by_name(user['name'])
+        #    guest = self.get_secure_cookie('guest')
+        #elif self.get_current_user():
+        #    user['name'] = self.get_current_user()
+        #    user['id'] = myTools.get_id_by_name(user['name'])
+        self.render('signup.html', user=user, url='/')
 
     def post(self):
         if ( myTools.is_a_attack(self) ):
             return 
       
-        print self.request
         user = {}
         user['email'] = self.get_argument('email')
         user['name'] = self.get_argument('name')
         user['password'] = self.get_argument('password')
         re_password = self.get_argument('repassword')
-        is_subscribed = self.get_argument('is_subscribed')
-        print is_subscribed
+        try:
+            if self.get_argument('is_subscribed'):
+                user['subscribed'] = 1
+        except:
+            user['subscribed'] = 0
 
         if user['password'] == re_password:
-            if myTools.is_email_unique(user['email']) and myTools.is_name_unique(user['name']):
-                myTools.insert_a_user(user)
+            if myTools.is_email_exist(user['email']) and myTools.is_name_exist(user['name']):
+                if myTools.insert_a_user(user):
+                    myTools.send_check_email(user['email'])
+                    if myTools.login(user['email'], user['password']):
+                        self.set_secure_cookie('guest', user['name'])
+                        self.redirect('/signup')
+        self.write('Signup Failed!')
+
+class FllwHandler(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        pid = int(self.get_argument('pid'))
+        fname = self.get_current_user()
+        if myTools.follow(pid, fname):
+            self.write("Succeed Following!")
+        else:
+            self.write("Followed Error!")
+        
+class SbscHandler(BaseHandler):
+    @tornado.web.authenticated
+    def post(self):
+        subscribed = int(self.get_argument('subscribed'))
+        name = self.get_current_user()
+        if myTools.subscribe(name, subscribed):
+            self.write("Succeed Subscribing!")
+        else:
+            self.write("Subscribed Error!")
+
+class CheckHandler(BaseHandler):
+    def get(self):
+        try:
+            code = self.get_argument('code')
+            email = self.get_argument('email') 
+            name = myTools.get_name_by_email(email)
+            if myTools.check_email(email, code):
+                self.set_secure_cookie('name', name)
+                self.redirect('/signup')
+            else:
+                self.write('Checked Failed!')
+        except: 
+            name = self.get_argument('name')
+            email = myTools.get_email_by_name(name)
+            myTools.send_check_email(email)
+
+
+class ChangePasswdHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self):
+        name = self.get_current_user()
+        email = myTools.get_email_by_name(name)
+        passwd = self.get_argument('passwd')
+        new_passwd = self.get_argument('new_passwd')
+        re_new_passwd = self.get_argument('re_new_passwd')
+        
+        if myTools.change_passwd(email, passwd, new_passwd, re_new_passwd):
+            self.write('Passwd Changed!')
+        else:
+            self.write('Changing Passwd Fail!')
+
+    @tornado.web.authenticated
+    def get(self):
+        name = self.get_current_user()
+        email = myTools.get_email_by_name(name)
+        passwd = self.get_argument('passwd')
+        new_passwd = self.get_argument('new_passwd')
+        re_new_passwd = self.get_argument('re_new_passwd')
+        
+        if myTools.change_passwd(email, passwd, new_passwd, re_new_passwd):
+            self.write('Passwd Changed!')
+        else:
+            self.write('Changing Passwd Fail!')
 
 class RenrenCallBackHandler(BaseHandler):
     def get(self):
@@ -202,15 +339,14 @@ class TucaoIndexHandler(BaseHandler):
             min_id = myTools.get_oldest_news_id()
         else:
             min_id = max_id - page_size + 1
-        #print 'latest_id: ', latest_id
-        #print 'min_id: ', min_id
-        #print 'max_id: ', max_id
-        #print 'page: ', page
         newsList = myTools.get_news_list(min_id, max_id)
         visible_pages = 10
 
+        user = myTools.get_current_user(self)
+        self.set_cookie("url", self.request.uri)
+        url = self.request.uri
         self.render("tucao_index.html", newsList=newsList, total_pages=total_pages, current_page=page,
-                visible_pages=visible_pages)
+                visible_pages=visible_pages, user=user, url=url)
 
 class TucaoHandler(BaseHandler):
     def get(self, nnid):
@@ -310,10 +446,15 @@ class TucaoCommHandler(BaseHandler):
         latest = myTools.get_latest_news_id()
         total = myTools.get_total_news_num()
         # print comm
+
+        user = myTools.get_current_user(self)
+        self.set_cookie("url", self.request.uri)
+        url = self.request.uri
         self.render('TucaoComm.html', title=news['title'],\
                 body=news['body'], publisher=news['publisher'],\
                 date=news['date'], clean_body=news['clean_body'],\
-                commList=comm, nid=nid, latest=latest, total=total)
+                commList=comm, nid=nid, latest=latest, total=total, 
+                user=user, url=url)
 
     def post(self):
         if ( myTools.is_a_attack(self) ):
@@ -386,4 +527,5 @@ def init():
 if __name__ == "__main__":
     init()
     main()
+
 

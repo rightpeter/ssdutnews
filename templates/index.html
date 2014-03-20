@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Bootstrap 101 Template</title>
+    <title>Pedestal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link rel="stylesheet" href="{{ static_url("flat-ui/bootstrap/css/bootstrap.css") }}">
@@ -18,86 +18,9 @@
     <![endif]-->
   </head>
   <body>
-  	<div class="container">
-		<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-		<!-- Navbar content -->
-		<div class="container">
-			<div class="navbar-header">
-		    <a class="navbar-brand" href="#">Pedetal</a>
-		  	</div>
-			<ul class="nav navbar-nav ">
-				<li>
-					<a href="#">项目实验室</a>
-				</li>
-    			<li>
-      				<a href="/index">
-						周知新闻	
-        			<!-- Indicator with number -->
-                    <!-- <span class="navbar-new">2</span> -->
-     				 </a>
-  				</li>
-				<li>
-					<a href="#">关于我们</a>
-				</li>
-			</ul>
-			<div class="navbar-right" style="padding-top:10px">
-                <form class="form-inline" method="post" action="/login" role="form">
-				  <div class="form-group ">
-				    <label class="sr-only" for="exampleInputEmail2">Email address</label>
-				    <input type="email" class="input-sm form-control" name="email" id="exampleInputEmail2" placeholder="Enter email">
-				  </div>
-				  <div class="form-group">
-				    <label class="sr-only" for="exampleInputPassword2">Password</label>
-				    <input type="password" class="input-sm form-control" name="password" id="exampleInputPassword2" placeholder="Password">
-				  </div>
-				  <div class="checkbox">
-				    <label>
-				    </label>
-				  </div>
-				  <button type="submit" class="btn btn-info btn-xs">登录</button>
-                  <span><a href="/signup" class="navbar-link">注册</a></span>
-                  {% raw xsrf_form_html() %}
-				</form>
-			</div>
-		</div>
-		</nav>
-
-
-	</div>
-		<div class="banner">
-			<ul>
-				 <li style="background-image: url(/static/images/tucao_slide.jpg);background-size:100%;">
-					<div class="inner" height="415px">
-						<h1>&nbsp;</h1>
-						<p>尽情地为自己呐喊</p>
-						<a class="btn btn-lg btn-info"href="/index">开始吐槽</a>
-					</div>
-		
-				</li>
-				 <li style="background-image: url(/static/images/slide2.jpg);background-size:100%;">
-					<div class="inner">
-						<h1>这只是一个大标题</h1>
-						<p>用来测试轮播插件这个复杂的东西</p>
-						<a class="btn btn-lg btn-info" href="#">测试</a>
-					</div>
-				 </li>
-				 <li style="background-image: url(/static/images/slide3.jpg);background-size:100%;">
-					<div class="inner">
-						<h1>这只是一个大标题</h1>
-						<p>用来测试轮播插件这个复杂的东西</p>
-						<a class="btn btn-lg btn-info" href="#">测试</a>
-					</div>
-				 </li>
-			</ul>
-			<a class="unslider-arrow prev left carousel-control" data-slide="prev">
-				<span class="glyphicon glyphicon-chevron-left"></span>
-			</a>
-			<a class="unslider-arrow next right carousel-control" data-slide="next">
-				<span class="glyphicon glyphicon-chevron-right"></span>
-			</a>
-		</div>
-
-
+        {% module NavbarPedestal(user, url) %}
+    <div style="height:50px"></div>
+        {% module Banner(slides) %}
 	<div class="container market">
 		<div class="row top-blank">
 			<div class="col-lg-4">
@@ -121,10 +44,8 @@
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="{{ static_url("flat-ui/js/jquery-2.0.3.min.js") }}"></script>
-    <script src="{{ static_url("script/unslider.min.js") }}"></script>
    
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="{{ static_url("flat-ui/js/bootstrap.min.js") }}"></script>
-    <script src="{{ static_url("script/index/basic.js") }}"></script>
   </body>
 </html>

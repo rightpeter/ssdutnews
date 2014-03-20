@@ -12,7 +12,17 @@ HOME_PAGE = "http://tucao.pedestal.cn"
 local_page = "210.30.97.149"
 ali_page = "115.28.2.165"
 
-mail_host = "smtp.163.com"
-mail_user = "pedestal_peter"
-mail_pass = "15961374343"
-mail_postfix = "163.com"
+mail_poster = {}
+mail_poster['163'] = {}
+mail_poster['163']['host'] = "smtp.163.com"
+mail_poster['163']['user'] = "pedestal_peter"
+mail_poster['163']['pass'] = "pedestaldlut"
+mail_poster['163']['postfix'] = "163.com"
+mail_poster['qq'] = {}
+mail_poster['qq']['host'] = "smtp.qq.com"
+mail_poster['qq']['user'] = "pedestal_scott"
+mail_poster['qq']['pass'] = "pedestaldlut"
+mail_poster['qq']['postfix'] = "qq.com"
+
+re_email = r'^([[a-zA-Z0-9]+[_|\_|\.]?]*[a-zA-Z0-9]+)@([[a-zA-Z0-9]+[_|\_|\.]?]*[a-zA-Z0-9]+)\.[a-zA-Z]{2,4}$'
+        

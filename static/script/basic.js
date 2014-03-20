@@ -38,7 +38,7 @@ $(document).ready(function() {
 		//if($('#content').val().length > 240) {
 			
 		//}
-		$.post("/news?"+(new Date()).valueOf(), {id: $('#id').attr("value"),content: $('#content').val()}, function (res) {
+		$.post("/news?"+(new Date()).valueOf(), {id: $('#id').attr("value"),content: $('#content').val(),_xsrf: $("input[name='_xsrf']").val()}, function (res) {
 			console.log(res);
 			window.location.reload();
 		});

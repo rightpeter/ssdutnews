@@ -1,17 +1,23 @@
-var validity_checking_url="http://tucao.pedestal.cn/api?callback=?";
-var post_url = "http://tucao.pedestal.cn/signup";
+var validity_checking_url="/api?callback=?";
+var post_url = "/signup";
 //validity_checking_url = "test.js";
-var email_key;
-var name_key;
-var password_key;
+var email_key=0;
+var name_key=0;
+var password_key=0;
+var password_confirmation_key = 0;
 
 $(document).ready(function() {
-	$('#email-address').blur(validity_checking);
-	$('#nick-name').blur(validity_checking);
-	$('#password').blur(is_password_legal);
-	$('#password-confirmation').blur(is_password_matched);
-	$('#submit').click(submit_register_form);
-	init();
+	$('#email-address').bind('input propertychange blur', validity_checking);
+	$('#nick-name').bind('input propertychange blur', validity_checking);
+	$('#password').bind('input propertychange blur', is_password_legal);
+	$('#password-confirmation').bind('input propertychange blur', is_password_matched);
+	//$('#submit').click(submit_register_form);
+	//init();
+		is_password_legal();
+		is_password_matched();
+		
+		$('#email-address').blur();
+		$('#nick-name').blur();
 });
 
 	function init() {
@@ -38,16 +44,21 @@ $(document).ready(function() {
 		is_password_legal();
 		is_password_matched();
 		
-		$('#email-address').blur();
-		$('#nick-name').blur();
+		$('#email-address').change();
+		$('#nick-name').change();
 
 		save_form_to_cookie(email,nickname,password1,password2, is_subscribed);
 
-		post_register_data(email, nickname, password1, password2, is_subscribed);
+        if (email_key && name_key && password_key && password_confirmation_key) {
+		    post_register_data(email, nickname, password1, password2, is_subscribed);
+        }
 	}
 
     function post_register_data(email, name, password, repassword, is_subscribed) {
             _xsrf = $.cookie('_xsrf');
+            if (_xsrf == "") {
+                _xsrf = "abc";
+            }
              $.post(post_url, {
                     email: email,
                     name: name,
@@ -63,11 +74,15 @@ $(document).ready(function() {
 		if (passwd.length < 8  || passwd.length > 16) {
 			// 密码长度不正确
 			$('#password').siblings(':first').html("密码长度不正确");
+            password_key = 0;
 			return -1;
 		} else {
 			$('#password').siblings(':first').html("推荐8-16位字母、数字组合");
+            password_key = 1;
 			return 0;
 		}
+
+        switch_submit_btn();
 	}
 
 	function is_password_matched() {
@@ -76,18 +91,15 @@ $(document).ready(function() {
 		if (passwd1 != passwd2) {
 			// 两次密码不匹配
 			$('#password-confirmation').siblings(':first').html("两次密码不匹配");
-            password_key = 0;
+            password_confirmation_key = 0;
 
             $('#submit').addClass('btn-disabled');
 			return -1;
 		} else {
 			$('#password-confirmation').siblings(':first').html("");
-            password_key = 1;
-              if (email_key && name_key && password_key) {
-                   $('#submit').removeClass('btn-disabled');
-              } else {
-                 $('#submit').addClass('btn-disabled');
-              }
+            password_confirmation_key = 1;
+
+            switch_submit_btn();
 			return 0;
 		}
 	}
@@ -110,15 +122,20 @@ $(document).ready(function() {
 					$('#'+label_id).siblings(':first').html(data.type+"可以使用");
                     data.type=="EMAIL"?email_key=1:name_key=1;
 				}
-				if (data.status == "REPEATED") {
-					$('#'+label_id).siblings(':first').html(data.type+"已被使用");
+				//if (data.status == "REPEATED") {
+                else {
+					$('#'+label_id).siblings(':first').html(data.type+"不可使用");
                     data.type=="EMAIL"?email_key=0:name_key=0;
 				}
 			});
-        if (email_key && name_key && password_key) {
-            $('#submit').removeClass('btn-disabled');
-        } else {
-            $('#submit').addClass('btn-disabled');
-        }
+        switch_submit_btn();
 	}
+
+    function switch_submit_btn() {
+        if (email_key && name_key && password_key && password_confirmation_key) {
+            $('#submit').removeClass('disabled');
+        } else {
+            $('#submit').addClass('disabled');
+        }
+    }
 

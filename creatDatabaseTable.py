@@ -57,11 +57,32 @@ def installUsersTable():
             `last_login` timestamp,
             `admin` TINYINT(1) DEFAULT '0',
             `checked` TINYINT(1) DEFAULT '0',
-            `guest` TINYINT(1) DEFAULT '0',
+            `subscribed` TINYINT(1) DEFAULT '0',
             PRIMARY KEY(id),
             UNIQUE KEY `name` (`name`),
             UNIQUE KEY `email` (`email`))
             AUTO_INCREMENT=100000
+    """)
+
+def installFllwTable():
+    NewsDatabase.reconnect()
+    NewsDatabase.execute("""CREATE TABLE `fllwTable`(
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `pid` VARCHAR(64) NOT NULL,
+            `fid` VARCHAR(32) NOT NULL,
+            `fllw_time` timestamp,
+            `checked` TINYINT(1) DEFAULT '0',
+            PRIMARY KEY(id))
+    """)
+
+def installCheckTable():
+    NewsDatabase.reconnect()
+    NewsDatabase.execute("""CREATE TABLE `checkTable`(
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `email` VARCHAR(64) NOT NULL,
+            `code` VARCHAR(64) NOT NULL,
+            `check_time` timestamp,
+            PRIMARY KEY(id))
     """)
 
 if __name__ == "__main__":
@@ -78,3 +99,9 @@ if __name__ == "__main__":
 
     if '-U' in sys.argv:
         installUsersTable()
+
+    if '-F' in sys.argv:
+        installFllwTable()
+        
+    if '-CHECK' in sys.argv:
+        installCheckTable()

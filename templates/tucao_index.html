@@ -1,69 +1,49 @@
 ﻿</!DOCTYPE HTML>
 <html>
 <head>
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" href="{{ static_url("flat-ui/bootstrap/css/bootstrap.css") }}">
-<style>
+    <title>Bootstrap 101 Template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="{{ static_url("flat-ui/bootstrap/css/bootstrap.css") }}">
+    <link rel="stylesheet" href="{{ static_url("flat-ui/css/flat-ui.css") }}">
+    <link rel="stylesheet" href="{{ static_url("css/index/style.css") }}">
+    <link rel="stylesheet" href="{{ static_url("css/index/carousel.css") }}">
+    <link rel="stylesheet" href="{{ static_url("css/index/basic.css") }}">
 
-.text-title{
-    text-shadow: 3px 3px 3px #A8AEB3;
-    font-size: 5em;
-    color: #3D00FF;
-    margin: 30px;
-}
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="{{ static_url("flat-ui/bootstrap/css/bootstrap.css") }}">
 
-.table-responsive table{
-    color: #0BC3D3;
-}
-/*.htable-borderd  thead tr{
-    background-color: #3498D8;
-    color: #FFFFFF;
-}
+    <style>
+        .text-title{
+            text-shadow: 3px 3px 3px #A8AEB3;
+            font-size: 5em;
+            color: #3D00FF;
+            margin: 30px;
+        }
+        
+        .table-responsive table{
+            color: #0BC3D3;
+        }
 
-.htable-bordered tr{
-    padding: 10px 10px;
-    background-color: #3498DB;
-    color: #FFFFFF;
-}
+        .small{
+            font-size: 0.8em;
+        }
+        
+        BODY {
+            FONT-SIZE: 12px;FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; PADDING-LEFT: 25px;
+        }
+    </style>
 
-.htable-bordered tbody tr:nth-child(odd){
-    background-color: #f9f9f9;
-    background-color: #ECF0F1;
-    color: #3498D8;
-}
+    <title>周知索引</title>
 
-.htable-borderd tbody tr td{
-    color: #FFFFFF:
-}
-
-.htable-bordered tbody tr:nth-child(odd) td{
-    color: #3498D8;
-}*/
-
-.small{
-    font-size: 0.8em;
-}
-
-/*.link{
-    color: #2C3E50;
-}*/
-
-BODY {
-FONT-SIZE: 12px;FONT-FAMILY: Verdana, Arial, Helvetica, sans-serif; PADDING-LEFT: 25px;
-}
-</style>
-<title> Index </title>
 </head>
+
 <body style="font-size:0.8em">
-<div class="container">
+{% module NavbarPedestal(user, url) %}
+<div class="container" style="margin-top:75px">
 	<div class="row">
 		<div class="span12">
-			<h3 class="text-center text-title">
-				周知索引
-			</h3>
 
-            <br>
-            <br>
             <div class="table-responsive">
 			    <table class="table table-bordered table table-striped table
                     table-hover" >
