@@ -35,7 +35,7 @@ from tornado.options import define, options
 
 mail_host = "smtp.163.com"
 mail_user = "pedestal_peter"
-mail_pass = "15961374343"
+mail_pass = "you think too much"
 mail_postfix = "163.com"
 
 def email_notice(pre_latest, new_latest): 

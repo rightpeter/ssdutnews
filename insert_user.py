@@ -31,7 +31,7 @@ from tornado.options import define, options
 
 # mail_host = "smtp.163.com"
 # mail_user = "rightpeter"
-# mail_pass = "15961374343"
+# mail_pass = "you think too much"
 # mail_postfix = "163.com"
 
 if __name__=="__main__":
